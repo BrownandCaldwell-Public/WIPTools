@@ -1,0 +1,1 @@
+BMP2DA flowdir output wgt0011 bmp0003

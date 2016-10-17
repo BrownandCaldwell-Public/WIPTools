@@ -1,0 +1,4 @@
+REM pip install Cython
+SET VS90COMNTOOLS=%VS110COMNTOOLS%
+REM SET VS90COMNTOOLS=%VS110COMNTOOLS%
+python setup.py build_ext --inplace

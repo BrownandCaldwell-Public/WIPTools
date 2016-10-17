@@ -1,0 +1,2 @@
+REM python C:\Users\csomerlot\Desktop\WIPTools\addin\Install\Baseline.py C:\Users\csomerlot\Desktop\WIPTools\Input\CSO_Pts.shp Proj_Type TSS_EffEx;FC_EffEx C:\Users\csomerlot\Desktop\WIPTools\Input\SummaryPoints_021216.shp true #
+python C:\Users\csomerlot\Desktop\WIPTools\addin\Install\CIP.py Scen1a C:\Users\csomerlot\Desktop\WIPTools\Input\CSO_Pts.shp Proj_Type Scen1a Q1_ex Q1_pro TSS_EffEx;FC_EffEx TSS_effpro;FC_Effpro Str_Length TSS_StrLF;FC_StrLF C:\Users\csomerlot\Desktop\WIPTools\Input\SummaryPoints_021216.shp true #

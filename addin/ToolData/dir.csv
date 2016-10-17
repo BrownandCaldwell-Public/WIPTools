@@ -1,0 +1,77 @@
+DS name,Description,Render,Type,Tool,Path,Attribute,ColorClass1,ColorClass2,ColorClass3,ColorClass4,ColorClass5,ColorClass6,ColorClass7,ColorClass8
+chnnlprot,Channel Protection Volume (cf),stretch,Raster,Runoff Volumes and Discharges,WIPOutput.mdb,,255 200 255 0,0 0 240 0,,,,,,
+cumda,Cumulative Drainage Area (acres),class,Raster, Topography and Hydrology Setup,WIPOutput.mdb,,255 255 204 0.001,255 255 153 0.1,204 255 153 1,127 204 115 25,0 153 255 40,0 51 204 100,0 0 153 1000,0 0 0 5000
+cumimpcov,Cumulative Impervious Cover (percent),class,Raster,Impervious Cover Model,WIPOutput.mdb,,211 255 190 0,255 255 115 10,255 211 127 25,255 190 190 50,0 0 0 100,,,
+cumimpcovvec,Cumulative Impervious Cover (percent)[vector],class,Vector,Impervious Cover Model,WIPOutput.mdb,Ratio,0 192 0 0,255 255 0 10,255 127 0 25,255 0 0 50,0 0 0 100,,,
+ELBOD,Biological Oxygen Demand Load (lbs) -  Existing Land Use,stretch,Raster,CIP Selection,CIP*.mdb,,200 200 200 0,61 209 150 0,,,,,,
+ELFecalColif,Fecal Coliform Load (cfu*10^9) - Existing Land Use,class,Raster,CIP Selection,CIP*.mdb,,255 255 190 0,215 215 198 10,205 205 102 20,115 115 0 50,255 255 0 100,230 152 0 1000,168 0 0 10000,31 83 110 500000
+ELSediment,Sediment Load (lbs) - Existing Land Use,class,Raster,CIP Selection,CIP*.mdb,,255 237 222 0,215 215 158 10,212 196 153 20,122 105 84 50,255 255 0 100,230 152 0 1000,168 0 0 10000,167 0 31 500000
+ELTotalNitro,Total Nitrogen Load (lbs) -  Existing Use,class,Raster,CIP Selection,CIP*.mdb,,233 255 190 0,170 255 0 10,112 168 0 20,38 115 0 50,255 255 0 100,230 152 0 1000,168 0 0 10000,156 1 56 500000
+ELTotalPhosp,Total Phosphorus Load (lbs) -  Existing Use,class,Raster,CIP Selection,CIP*.mdb,,255 214 232 0,232 171 255 1,194 176 207 5,112 68 137 10,255 255 0 100,230 152 0 1000,168 0 0 10000,145 57 144 500000
+EydFecalColif,Fecal Coliform Yield (cfu*10^9/ac) - Existing Land Use,class,Raster,CIP Selection,CIP*.mdb,,255 255 190 0,215 215 198 0.1,205 205 102 0.5,115 115 0 1.0,255 255 0 3.0,230 152 0 5.0,168 0 0 10.0,31 83 110 20
+EydSediment,Sediment Yield (lbs/ac) - Existing Land Use,class,Raster,CIP Selection,CIP*.mdb,,255 237 222 0,215 215 158 0.1,212 196 153 0.5,122 105 84 1.0,255 255 0 3.0,230 152 0 5.0,168 0 0 10.0,167 0 31 20
+Eydtotalnitro,Total Nitrogen Yield (lbs/ac) - Existing Land Use,class,Raster,CIP Selection,CIP*.mdb,,233 255 190 0,170 255 0 0.1,112 168 0 0.5,38 115 0 1.0,255 255 0 3.0,230 152 0 5.0,168 0 0 10.0,156 1 56 20
+Eydtotalphosp,Total Phosphorus Yield (lbs/ac) - Existing Land Use,class,Raster,CIP Selection,CIP*.mdb,,255 214 232 0,232 171 255 0.1,194 176 207 0.5,112 68 137 1.0,255 255 0 3.0,230 152 0 5.0,168 0 0 10.0,145 57 144 20
+EyVFecalColif,Fecal Coliform Yield (cfu*10^9/ac) - Existing Land Use [vector],class,Vector,CIP Selection,CIP*.mdb,Ratio,0 194 16 2.0,255 255 0 8.2,255 0 0 10.2,168 56 0 20.4,,,,
+EyVSediment,Sediment Yield (lbs/ac) - Existing Land Use [vector],class,Vector,CIP Selection,CIP*.mdb,Ratio,0 194 16 800,255 255 0 1200,255 0 0 1600,,,,,
+EyVtotalnitro,Total Nitrogen Yield (lbs/ac) - Existing Land Use [vector],class,Vector,CIP Selection,CIP*.mdb,Ratio,0 194 16 2.2,255 255 0 3.6,255 0 0 6.0,168 56 0 10.0,0 0 0 1800,,,
+EyVtotalphosp,Total Phosphorus Yield (lbs/ac) - Existing Land Use [vector],class,Vector,CIP Selection,CIP*.mdb,Ratio,0 194 16 0.4,255 255 0 0.78,255 0 0 0.82,168 56 0 1.43,0 0 0 1.8,,,
+FecalColifEyield,Fecal Coliform Yield (cfu*10^9/ac) - Existing Land Use [vector],class,Vector,Baseline Conditions,WIPOutput.mdb,Ratio,255 255 190 0,215 215 198 2,205 205 102 4.1,115 115 0 8.2,255 255 0 10.2,230 152 0 20.4,168 0 0 100,31 83 110 500
+FecalColifFyield,Fecal Coliform Yield (cfu*10^9/ac) - Future Land Use [vector],class,Vector,Baseline Conditions,WIPOutput.mdb,Ratio,255 255 190 0,215 215 198 2,205 205 102 4.1,115 115 0 8.2,255 255 0 10.2,230 152 0 20.4,168 0 0 100,31 83 110 500
+FLFecalColif,Fecal Coliform Load (cfu*10^9) - Future Land Use,class,Raster,CIP Selection,CIP*.mdb,,255 255 190 0,215 215 198 10,205 205 102 20,115 115 0 50,255 255 0 100,230 152 0 1000,168 0 0 10000,31 83 110 500000
+FLSediment,Sediment Load (lbs) -  Future Use,class,Raster,CIP Selection,CIP*.mdb,,255 237 222 0,215 215 158 10,212 196 153 20,122 105 84 50,255 255 0 100,230 152 0 1000,168 0 0 10000,167 0 31 500000
+FLTotalNitro,Total Nitrogen Load (lbs) -  Future Use,class,Raster,CIP Selection,CIP*.mdb,,233 255 190 0,170 255 0 2.2,112 168 0 3.6,38 115 0 6.0,255 255 0 10,230 152 0 100,168 0 0 1000,156 1 56 50000
+FLTotalPhosp,Total Phosphorus Load (lbs) -  Future Use,class,Raster,CIP Selection,CIP*.mdb,,255 214 232 0,232 171 255 1,194 176 207 5,112 68 137 10,255 255 0 100,230 152 0 1000,168 0 0 10000,145 57 144 500000
+FydFecalColif,Fecal Coliform Yield (cfu*10^9/ac) - Future Land Use,class,Raster,CIP Selection,CIP*.mdb,,255 255 190 0,215 215 198 0.1,205 205 102 0.5,115 115 0 1.0,255 255 0 3.0,230 152 0 5.0,168 0 0 10.0,31 83 110 20
+FydSediment,Sediment Yield (lbs/ac) - Future Land Use,class,Raster,CIP Selection,CIP*.mdb,,255 237 222 0,215 215 158 0.1,212 196 153 0.5,122 105 84 1.0,255 255 0 3.0,230 152 0 5.0,168 0 0 10.0,167 0 31 20
+Fydtotalnitro,Total Nitrogen Yield (lbs/ac) - Future Land Use ,class,Raster,CIP Selection,CIP*.mdb,,233 255 190 0,170 255 0 2.2,112 168 0 3.6,38 115 0 6.0,255 255 0 10,230 152 0 20,168 0 0 30,156 1 56 50
+Fydtotalphosp,Total Phosphorus Yield (lbs/ac) - Future Land Use ,class,Raster,CIP Selection,CIP*.mdb,,255 214 232 0,232 171 255 0.1,194 176 207 0.5,112 68 137 1.0,255 255 0 3.0,230 152 0 5.0,168 0 0 10.0,145 57 144 20
+FyVFecalColif,Fecal Coliform Yield (cfu*10^9/ac) - Future Land Use [vector],class,Vector,CIP Selection,CIP*.mdb,Ratio,0 194 16 2.0,255 255 0 8.2,255 0 0 10.2,168 56 0 20.4,,,,
+FyVSediment,Sediment Yield (lbs/ac) - Future Land Use [vector],class,Vector,CIP Selection,CIP*.mdb,Ratio,0 194 16 800,255 255 0 1200,255 0 0 1600,,,,,
+FyVtotalnitro,Total Nitrogen Yield (lbs/ac) - Future Land Use [vector],class,Vector,CIP Selection,CIP*.mdb,Ratio,0 194 16 2.2,255 255 0 3.6,255 0 0 6.0,168 56 0 10.0,0 0 0 1800,,,
+FyVtotalphosp,Total Phosphorus Yield (lbs/ac) - Future Land Use [vector],class,Vector,CIP Selection,CIP*.mdb,Ratio,0 194 16 0.4,255 255 0 0.78,255 0 0 0.82,168 56 0 1.43,0 0 0 1.8,,,
+Impcov,Impervious Cover (percent),stretch,Raster,Impervious Cover Model,WIPOutput.mdb,,255 255 255 0,10 10 10 0,,,,,,
+lefecalcolif,Fecal Coliform Load (cfu*10^9) - Existing Land Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 255 190 0,215 215 198 10,205 205 102 20,115 115 0 50,255 255 0 100,230 152 0 1000,168 0 0 10000,31 83 110 500000
+lesediment,Sediment Load (lbs) - Existing Land Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 237 222 0,215 215 158 10,212 196 153 20,122 105 84 50,255 255 0 100,230 152 0 1000,168 0 0 10000,167 0 31 500000
+letotalnitro,Total Nitrogen Load (lbs) -  Existing Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,233 255 190 0,170 255 0 10,112 168 0 20,38 115 0 50,255 255 0 100,230 152 0 1000,168 0 0 10000,156 1 56 500000
+letotalphosp,Total Phosphorus Load (lbs) -  Existing Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 214 232 0,232 171 255 1,194 176 207 5,112 68 137 10,255 255 0 100,230 152 0 1000,168 0 0 10000,145 57 144 500000
+lffecalcolif,Fecal Coliform Load (cfu*10^9) - Future Land Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 255 190 0,215 215 198 10,205 205 102 20,115 115 0 50,255 255 0 100,230 152 0 1000,168 0 0 10000,31 83 110 500000
+lfsediment,Sediment Load (lbs) -  Future Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 237 222 0,215 215 158 10,212 196 153 20,122 105 84 50,255 255 0 100,230 152 0 1000,168 0 0 10000,167 0 31 500000
+lftotalnitro,Total Nitrogen Load (lbs) -  Future Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,233 255 190 0,170 255 0 10,112 168 0 20,38 115 0 50,255 255 0 100,230 152 0 1000,168 0 0 10000,156 1 56 500000
+lftotalphosp,Total Phosphorus Load (lbs) -  Future Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 214 232 0,232 171 255 1,194 176 207 5,112 68 137 10,255 255 0 100,230 152 0 1000,168 0 0 10000,145 57 144 500000
+Q10,Urban 10-yr Discharge (cfs),stretch,Raster,Runoff Volumes and Discharges,WIPOutput.mdb,,255 255 200 0,0 0 240 0,,,,,,
+qEFecalColif,Fecal Coliform Production (cfu*10^9 ) - Existing Land Use,class,Raster,Production Rate Setup,WIPOutput.mdb,,255 255 190 0.1,215 215 198 0.2,205 205 102 0.3,115 115 0 0.5,255 255 0 1.0,230 152 0 10,168 0 0 1000,31 83 110 500000
+qESediment,Sediment Production (lbs) - Existing Land Use,class,Raster,Production Rate Setup,WIPOutput.mdb,,255 237 222 2.0,215 215 158 5.0,212 196 153 10.0,122 105 84 20.0,255 255 0 50,230 152 0 100,168 0 0 1000,167 0 31 500000
+qETotalNitro,Total Nitrogen Production (lbs) - Existing Land Use,class,Raster,Production Rate Setup,WIPOutput.mdb,,233 255 190 0.05,170 255 0 0.1,112 168 0 0.2,38 115 0 0.3,255 255 0 1.0,230 152 0 10,168 0 0 100,156 1 56 50000
+qETotalPhosp,Total Phosphorus Production (lbs) - Existing Land Use,class,Raster,Production Rate Setup,WIPOutput.mdb,,255 214 232 0.005,232 171 255 0.01,194 176 207 0.02,112 68 137 0.03,255 255 0 1.0,230 152 0 10,168 0 0 100,145 57 144 50000
+qFFecalColif,Fecal Coliform Production (cfu*10^9 ) - Future Land Use,class,Raster,Production Rate Setup,WIPOutput.mdb,,255 255 190 0.1,215 215 198 0.2,205 205 102 0.3,115 115 0 0.5,255 255 0 1.0,230 152 0 10,168 0 0 1000,31 83 110 500000
+qFSediment,Sediment Production (lbs) - Future Land Use,class,Raster,Production Rate Setup,WIPOutput.mdb,,255 237 222 2.0,215 215 158 5.0,212 196 153 10.0,122 105 84 20.0,255 255 0 50,230 152 0 100,168 0 0 1000,167 0 31 500000
+qFTotalNitro,Total Nitrogen Production (lbs) - Future Land Use,class,Raster,Production Rate Setup,WIPOutput.mdb,,233 255 190 0.05,170 255 0 0.1,112 168 0 0.2,38 115 0 0.3,255 255 0 1.0,230 152 0 10,168 0 0 100,156 1 56 50000
+qFTotalPhosp,Total Phosphorus Production (lbs) - Future Land Use,class,Raster,Production Rate Setup,WIPOutput.mdb,,255 214 232 0.005,232 171 255 0.01,194 176 207 0.02,112 68 137 0.03,255 255 0 1.0,230 152 0 10,168 0 0 100,145 57 144 50000
+SedimentEyield,Sediment Yield (lbs/ac) - Existing Land Use [vector],class,Vector,Baseline Conditions,WIPOutput.mdb,Ratio,255 237 222 0,215 215 158 400,212 196 153 800,122 105 84 1200,255 255 0 1600,230 152 0 2000,168 0 0 5000,167 0 31 10000
+SedimentFyield,Sediment Yield (lbs/ac) - Future Land Use [vector],class,Vector,Baseline Conditions,WIPOutput.mdb,Ratio,255 237 222 0,215 215 158 400,212 196 153 800,122 105 84 1200,255 255 0 1600,230 152 0 2000,168 0 0 5000,167 0 31 10000
+streams,Streams,class,Raster, Topography and Hydrology Setup,WIPOutput.mdb,,0 0 200 10,,,,,,,
+streamsvec,Streams [vector],simple,Vector, Topography and Hydrology Setup,WIPOutput.mdb,ARCID,0 0 200 10,,,,,,,
+summarypts,Summary Points,point,Vector,Baseline Conditions,WIPOutput.mdb,Name,169 0 230 10,,,,,,,
+summaryptsCIP,Summary Points,point,Vector,CIP Selection,CIP*.mdb,Name,169 0 230 10,,,,,,,
+totalnitroEyield,Total Nitrogen Yield (lbs/ac) - Existing Land Use [vector],class,Vector,Baseline Conditions,WIPOutput.mdb,Ratio,233 255 190 0,170 255 0 2.2,112 168 0 3.6,38 115 0 6,255 255 0 10,230 152 0 100,168 0 0 1000,156 1 56 5000
+totalnitroFyield,Total Nitrogen Yield (lbs/ac) - Future Land Use [vector],class,Vector,Baseline Conditions,WIPOutput.mdb,Ratio,233 255 190 0,170 255 0 2.2,112 168 0 3.6,38 115 0 6,255 255 0 10,230 152 0 100,168 0 0 1000,156 1 56 5000
+totalphospEyield,Total Phosphorus Yield (lbs/ac) - Existing Land Use [vector],class,Vector,Baseline Conditions,WIPOutput.mdb,Ratio,255 214 232 0.4,232 171 255 0.72,194 176 207 0.82,112 68 137 1.43,255 255 0 2,230 152 0 5,168 0 0 100,145 57 144 200
+totalphospFyield,Total Phosphorus Yield (lbs/ac) - Future Land Use [vector],class,Vector,Baseline Conditions,WIPOutput.mdb,Ratio,255 214 232 0.4,232 171 255 0.72,194 176 207 0.82,112 68 137 1.43,255 255 0 2,230 152 0 5,168 0 0 100,145 57 144 200
+UndevQ,Undeveloped 1-yr discharge (cfs),stretch,Raster,Runoff Volumes and Discharges,WIPOutput.mdb,,255 255 200 0,29 64 18 0,,,,,,
+urban25yrQ,Urban 25-yr Discharge (cfs),stretch,Raster,Runoff Volumes and Discharges,WIPOutput.mdb,,255 255 200 0,0 0 240 0,,,,,,
+urban2yrQ,Urban 2-yr Discharge (cfs),stretch,Raster,Runoff Volumes and Discharges,WIPOutput.mdb,,255 255 200 0,0 0 240 0,,,,,,
+urbanqcpcip,CIP Urban 1-yr Discharge (cfs),stretch,Raster,CIP Selection,CIP*.mdb,,255 255 200 0,0 0 240 0,,,,,,
+urbrurratio,Existing Urban/Rural Discharge Ratio,class,Raster,Production Rate Setup,WIPOutput.mdb,,211 255 190 1.1,255 255 115 1.25,255 211 127 1.5,255 190 190 3,0 0 0 5,,,
+urratiovec,Existing Urban/Rural Discharge Ratio [vector],class,Vector,Production Rate Setup,WIPOutput.mdb,Ratio,0 192 0 1.1,255 255 0 1.25,255 127 0 1.5,255 0 0 3,0 0 0 5,,,
+V10Flood,10-yr Flood Volume (cf),stretch,Raster,Runoff Volumes and Discharges,WIPOutput.mdb,,255 200 255 0,0 0 240 0,,,,,,
+V25Flood,25-yr Flood Volume (cf),stretch,Raster,Runoff Volumes and Discharges,WIPOutput.mdb,,255 200 255 0,0 0 240 0,,,,,,
+WQV,Water Quality Volume (cf),stretch,Raster,Runoff Volumes and Discharges,WIPOutput.mdb,,255 200 255 0,0 0 240 0,,,,,,
+yefecalcolif,Fecal Coliform Yield (cfu*10^9/ac) - Existing Land Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 255 190 0,215 215 198 2,205 205 102 4.1,115 115 0 8.2,255 255 0 10.2,230 152 0 20.4,168 0 0 100,31 83 110 500
+yesediment,Sediment Yield (lbs/ac) - Existing Land Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 237 222 0,215 215 158 400,212 196 153 800,122 105 84 1200,255 255 0 1600,230 152 0 2000,168 0 0 5000,167 0 31 10000
+yetotalnitro,Total Nitrogen Yield (lbs/ac) - Existing Land Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,233 255 190 0,170 255 0 2.2,112 168 0 3.6,38 115 0 6,255 255 0 10,230 152 0 100,168 0 0 1000,156 1 56 5000
+yetotalphosp,Total Phosphorus Yield (lbs/ac) - Existing Land Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 214 232 0.4,232 171 255 0.72,194 176 207 0.82,112 68 137 1.43,255 255 0 2,230 152 0 5,168 0 0 100,145 57 144 200
+yffecalcolif,Fecal Coliform Yield (cfu*10^9/ac) - Future Land Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 255 190 0,215 215 198 2,205 205 102 4.1,115 115 0 8.2,255 255 0 10.2,230 152 0 20.4,168 0 0 100,31 83 110 500
+yfsediment,Sediment Yield (lbs/ac) - Future Land Use,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 237 222 0,215 215 158 400,212 196 153 800,122 105 84 1200,255 255 0 1600,230 152 0 2000,168 0 0 5000,167 0 31 10000
+yftotalnitro,Total Nitrogen Yield (lbs/ac) - Future Land Use ,class,Raster,Baseline Conditions,WIPOutput.mdb,,233 255 190 0,170 255 0 2.2,112 168 0 3.6,38 115 0 6,255 255 0 10,230 152 0 100,168 0 0 1000,156 1 56 5000
+yftotalphosp,Total Phosphorus Yield (lbs/ac) - Future Land Use ,class,Raster,Baseline Conditions,WIPOutput.mdb,,255 214 232 0.4,232 171 255 0.72,194 176 207 0.82,112 68 137 1.43,255 255 0 2,230 152 0 5,168 0 0 100,145 57 144 200

@@ -1,0 +1,16 @@
+<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Name>WIP Tools</Name><AddInID>{1e5339c7-6f14-4ffa-a869-e597ae0125d8}</AddInID><Description>A collection of hydrologic and BMP assessment tools</Description><Version>1.0</Version><Image>Images\WIPlogo.bmp</Image><Author>Chris Somerlot</Author><Company>Brown and Caldwell</Company><Date>04/29/2016</Date><Targets><Target name="Desktop" version="10.1" /></Targets><AddIn language="PYTHON" library="addin.py" namespace="addin"><ArcMap>
+    <Commands>
+        <Button caption="TopoHydro" category="WIP Tools" class="TopoHydro" id="TopoHydro_addin.button" image="Images\topo.bmp" message="" tip=""><Help heading="" /></Button>
+        <Button caption="Impervious Cover" category="WIP Tools" class="ImpCov" id="ImpCov_addin.button" image="Images\impcov.bmp" message="" tip=""><Help heading="" /></Button>
+        <Button caption="Runoff" category="WIP Tools" class="Runoff" id="Runoff_addin.button" image="Images\ro.bmp" message="" tip=""><Help heading="" /></Button>
+        <Button caption="Scenario Analysis" category="WIP Tools" class="CIP" id="CIP_addin.button" image="Images\cip.bmp" message="" tip=""><Help heading="" /></Button>
+        </Commands>
+    <Extensions>
+        </Extensions>
+    <Toolbars>
+        <Toolbar caption="WIP Tools" category="WIP Tools" id="WIPTools_addin.toolbar" showInitially="true"><Items><Menu refID="WIPTools_addin.menu" /></Items></Toolbar>
+        </Toolbars>
+    <Menus>
+        <Menu caption="WIP Tools" category="WIP Tools" id="WIPTools_addin.menu" isRootMenu="false" isShortcutMenu="false" separator="false"><Items><Button refID="TopoHydro_addin.button" /><Button refID="ImpCov_addin.button" /><Button refID="Runoff_addin.button" /><Button refID="CIP_addin.button" /></Items></Menu>
+        </Menus>
+    </ArcMap></AddIn></ESRI.Configuration>

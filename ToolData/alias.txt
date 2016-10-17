@@ -1,0 +1,7 @@
+TotalNitrogen 	"tn, nitro, nitrogen, nit"
+TotalPhosphorus 	"tp, pho, phosp"
+FecalColiform 	"fc, fecal, feccol"
+Sediment 	"tss, sed, sediment"
+BOD 	bod
+Zinc 	"zinc, zn, zi"
+Copper	"copper, cu, co"
