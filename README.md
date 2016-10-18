@@ -2,7 +2,7 @@
 ArcGIS-based geoprocessing tools for Watershed Improvement Plans 
 
 ## Deploying
-Because WIP Tools is implemented as a python toolbox, you can place the .pyt file in any location and access it via your ArcCatalog window in ArcMap. However, it does require the (2) .pyd files to be placed in the same location. Additionaly there are a collection of text files used for specifying project-specific modeling parameters taht should be kept with the .pyt. Therefore, it will usually be sensible to have a copy of all these files in the project directory.
+Because WIP Tools is implemented as a python toolbox, you can place the .pyt file in any location and access it via your ArcCatalog window in ArcMap. However, it does require the (2) .pyd files to be placed in the same location. Additionaly there are a collection of text files used for specifying project-specific modeling parameters that should be kept with the .pyt. Therefore, it will usually be sensible to have a copy of all these files in the project directory.
 
 Because WIP Tools is implemented as a python toolbox, it can run in any version of ArcGIS (YMMV and testing should be done for versions prior to 10.3)
 
@@ -10,10 +10,11 @@ Because WIP Tools is implemented as a python toolbox, it can run in any version 
 There are 2 tools that for performance can be compiled to C as .pyd files using Cython:
 - AttributeExtract.pyx
 - bmpFlowModFast.pyx
+
 To recompile these, cython and a C compiler must be installed. There is a batch file (compile.bat) to act as a makefile to run Cython and make the .pyd files from them.
 
 ## Running
-There are a large number of inputs and outputs for some of the tools, therefore it is simplest to place them in a new model builder specific for a project. This way outputs from one tool can be linked as inputs for multiple other tools, and the geoporcessing lineage is graphically documented. The model should make use the the following geoprocessing environment variables for consistency across all mdoels:
+There are a large number of inputs and outputs for some of the tools, therefore it is simplest to place them in a new model builder specific for a project. This way outputs from one tool can be linked as inputs for multiple other tools, and the geoprocessing lineage is graphically documented. The model should make use the the following geoprocessing environment variables for consistency across all mdoels:
 - workspace
 - processing extents
 - cell size
