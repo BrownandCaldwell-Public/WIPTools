@@ -1,3 +1,6 @@
+
+
+"""
 WIP Tools 3.0
 Copyright (C) 2016 Brown and Caldwell
 
@@ -16,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Linking this library statically or dynamically with other modules is making a combined work based on this library. Thus, the terms and conditions of the GNU General Public License cover the whole combination.
 As a special exception, the copyright holders of this library give you permission to link this library with independent modules such as arcpy to produce an executable, regardless of the license terms of these independent modules, and to copy and distribute the resulting executable under terms of your choice, provided that you also meet, for each linked independent module, the terms and conditions of the license of that module. An independent module is a module which is not derived from or based on this library. If you modify this library, you may extend this exception to your version of the library, but you are not obliged to do so. If you do not wish to do so, delete this exception statement from your version.
-
+"""
 import arcpy
 from arcpy.sa import *
 import sys, os, time, traceback
@@ -496,6 +499,13 @@ def ChannelProtection(BMP_pts, fld):
         uQcp = urbanQcp(ModCumDa, Cumulative_Impervious)
 
         return ModCumDa, thisBMPras, uQcp
+
+
+class tool(object):
+    def check(self):
+        if not arcpy.env.workspace or 'gdb' not in arcpy.env.workspace:
+            raise Exception("Workspace is not set in geoprocessing env settrings, or is not a fileGDB. Fix and rerun")
+        log("\n%s run started at %s from %s" % (tool, time.ctime(), __file__))
         
 class Toolbox(object):
     def __init__(self):
@@ -506,7 +516,7 @@ class Toolbox(object):
         if arcpy.env.scratchWorkspace == "" or arcpy.env.scratchWorkspace.endswith('Default.gdb'):
             arcpy.env.scratchWorkspace = os.path.split(arcpy.env.workspace)[0]
 
-class TopoHydro(object):
+class TopoHydro(tool):
     def __init__(self):
         self.label = "TopoHydro"
         self.description = "Topopgraphy and Hydrology Setup"
@@ -581,7 +591,7 @@ class TopoHydro(object):
 
     def execute(self, parameters, messages):
         try:
-              
+            tool.check(self)
             tempdem = parameters[0].valueAsText
             ThisMask = parameters[1].valueAsText
             Threshold_for_stream_formation__acres_ = parameters[2].valueAsText
@@ -649,7 +659,7 @@ class TopoHydro(object):
             i, j, k = sys.exc_info()
             EH(i, j, k)
             
-class ImpCov(object):
+class ImpCov(tool):
     def __init__(self):
         self.label = "ImpCov"
         self.description = "Impervious Cover"
@@ -750,7 +760,7 @@ class ImpCov(object):
 
     def execute(self, parameters, messages):
         try:
-            
+            tool.check(self)
             # Script arguments...
             Impervious_Polygons_Vector_preclip = parameters[0].valueAsText
             Lakes_Polygon_Vector_preclip = parameters[1].valueAsText
@@ -876,7 +886,7 @@ class ImpCov(object):
             i, j, k = sys.exc_info()
             EH(i, j, k)
             
-class Runoff(object):
+class Runoff(tool):
     def __init__(self):
         self.label = "Runoff"
         self.description = "Runoff"
@@ -992,6 +1002,7 @@ class Runoff(object):
 
     def execute(self, parameters, messages):
         try:
+            tool.check(self)
             Landuse = parameters[0].valueAsText
             LanduseAtt = parameters[1].valueAsText
             Soils = parameters[2].valueAsText
@@ -1176,7 +1187,7 @@ class Runoff(object):
             i, j, k = sys.exc_info()
             EH(i, j, k)
 
-class ProdTrans(object):
+class ProdTrans(tool):
     def __init__(self):
         self.label = "ProdTrans"
         self.description = "Production and Transport Setup"
@@ -1439,6 +1450,7 @@ class ProdTrans(object):
 
     def execute(self, parameters, messages):
         try:
+            tool.check(self)
             # for i, p in enumerate(parameters):
                 # log("%s: %s" % (i, p.valueAsText))
             if not arcpy.env.mask:
@@ -1777,7 +1789,7 @@ class ProdTrans(object):
             i, j, k = sys.exc_info()
             EH(i, j, k)
 
-class Baseline(object):
+class Baseline(tool):
     def __init__(self):
         self.label = "Baseline"
         self.description = "Baseline"
@@ -1872,6 +1884,7 @@ class Baseline(object):
 
     def execute(self, parameters, messages):
         try:
+            tool.check(self)
             log("\nBaseline run started at %s" % time.asctime())
             
             bmp_noclip = parameters[2].valueAsText
@@ -1959,7 +1972,7 @@ class Baseline(object):
             i, j, k = sys.exc_info()
             EH(i, j, k)
             
-class CIP(object):
+class CIP(tool):
     def __init__(self):
         self.label = "CIP"
         self.description = "CIP"
@@ -2103,6 +2116,7 @@ class CIP(object):
 
     def execute(self, parameters, messages):
         try:
+            tool.check(self)
             ScenName = parameters[0].valueAsText
             use_existing = parameters[1].value
             use_future = parameters[2].value
