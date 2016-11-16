@@ -67,10 +67,10 @@ def EH(i, j, k):
     data = traceback.format_exception(i,j,k)
     for l in data:
         log("\t" + l.strip())
-        # arcpy.AddError(l)
+        arcpy.AddError(l)
         
     # arcpy.AddError("*"*50+'''\nExtended error output has been recorded in the log file''')
-    raise Exception(arcpy.GetMessages())
+    raise Exception()#arcpy.GetMessages())
      
 def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
     import bmpFlowModFast
@@ -505,7 +505,7 @@ class tool(object):
     def check(self):
         if not arcpy.env.workspace or 'gdb' not in arcpy.env.workspace:
             raise Exception("Workspace is not set in geoprocessing env settrings, or is not a fileGDB. Fix and rerun")
-        log("\n%s run started at %s from %s" % (tool, time.ctime(), __file__))
+        log("\n%s run started at %s from %s" % (self.__class__.__name__, time.ctime(), __file__))
         
 class Toolbox(object):
     def __init__(self):
