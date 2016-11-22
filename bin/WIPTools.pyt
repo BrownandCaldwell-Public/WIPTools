@@ -505,7 +505,7 @@ class tool(object):
     def check(self):
         if not arcpy.env.workspace or 'gdb' not in arcpy.env.workspace:
             raise Exception("Workspace is not set in geoprocessing env settrings, or is not a fileGDB. Fix and rerun")
-        log("\n%s run started at %s from %s" % (self.__class__.__name__, time.ctime(), __file__))
+        log("\n%s run started at %s from %s using workspace %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace))
         
 class Toolbox(object):
     def __init__(self):
@@ -559,6 +559,7 @@ class TopoHydro(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"Flowdir")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Flow Accumulation",
@@ -567,6 +568,7 @@ class TopoHydro(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"Flow_acc")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Drainage Area",
@@ -575,6 +577,7 @@ class TopoHydro(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"Cumda")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Streams",
@@ -583,6 +586,7 @@ class TopoHydro(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"Streams")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         return parameters
 
@@ -720,6 +724,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"impcov")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Cover",
@@ -728,6 +733,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcov")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Cover with Lakes",
@@ -736,6 +742,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovlakes")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Vector",
@@ -744,6 +751,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovvec")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Raster Lakes",
@@ -752,6 +760,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"lakes")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         return parameters
 
