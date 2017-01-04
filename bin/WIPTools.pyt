@@ -45,12 +45,14 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
         output = (( Streams_rc * Power( URratio, 1.5 ) + BooleanNot( Streams_rc)) * TSSprod  ) + pointSrcRaster
     return output
     
-def log(message):
+def log(message, err=False):
     ''' Logging function that write to the log file, and ArcGIS geoprocessor messages'''
     # if not message.startswith("  "):
         # message = " Step %s: %s" % (Step(), message)
     message = str(message)
-    if arcpy: arcpy.AddMessage(message)
+    if arcpy: 
+        if err: arcpy.AddError(message)
+        else: arcpy.AddMessage(message)
     with file(logfname, 'a') as logfile:
         logfile.write(message+"\n")
     
@@ -66,11 +68,9 @@ def GetBasin():
 def EH(i, j, k):
     data = traceback.format_exception(i,j,k)
     for l in data:
-        log("\t" + l.strip())
-        arcpy.AddError(l)
-        
-    # arcpy.AddError("*"*50+'''\nExtended error output has been recorded in the log file''')
-    raise Exception()#arcpy.GetMessages())
+        log("\t" + l.strip(), True)
+
+    raise Exception()
      
 def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
     import bmpFlowModFast
@@ -91,7 +91,7 @@ def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
     if type(bmpsInput) == arcpy.Raster:
         nbmppts = arcpy.RasterToNumPyArray(bmpsInput, nodata_to_value=0).astype(numpy.double)
         if nbmppts.size != nflowdir.size:
-            raise Exception("Input weight raster (%s) is not the same size (%s) as flow direction raster size (%s)" % (bmpsInput.catalogPath, nbmppts.size, nflowdir.size))
+            raise Exception("Input weight raster (%s) is not the same size (%s) as flow direction raster size (%s); was the processing extent env variable set up?" % (bmpsInput.catalogPath, nbmppts.size, nflowdir.size))
     else:
         nbmppts = None
         
@@ -125,7 +125,7 @@ def AttExtract(streamInvPts, flowdir, streams, outputname=None, cellsize=None):
 
     newRaster = arcpy.NumPyArrayToRaster(arr, lowerLeft, cellSize, value_to_nodata=0)
     if outputname != None:
-        newRaster.save(outputname)
+        newRaster.save(os.path.join(arcpy.env.scratchFolder, outputname))
         # log("\tOutput: " + os.path.join(arcpy.env.scratchFolder, outputname))
         # stats = arr.flatten()
         # log("\t\tMax: %s Min: %s Avg: %s Med: %s Std: %s Var: %s" % (numpy.amax(stats), numpy.amin(stats), numpy.average(stats), numpy.median(stats), numpy.std(stats), numpy.var(stats)))
@@ -362,7 +362,7 @@ def rural25yrQ(Basin, cum_da):
     if Basin == 'SC Coastal':
          return ( Power( ( cum_da / 640 ) , 0.606 ) ) * 245
          
-def urbanQcp(cum_da, impcov, Basin='Region 1  2006 (Rural) - Blue Ridge NC 2002 (Urban)'):
+def urbanQcp(cum_da, impcov, Basin):
     if Basin == 'SC Piedmont':
         return (Power( ( cum_da / 640 ) , 0.554 ) * (1.36 * 0.875)) * ( Power( impcov, 1.241 )) * ( Power( rural2yrQ(Basin,cum_da), 0.323))
     if Basin == 'SC Blue Ridge':
@@ -452,51 +452,45 @@ def urban25yrQ(Basin, cum_da, impcov):
     if Basin == 'Georgia Region 1':
          return (526 * Power( ( cum_da / 640 ), 0.773 ) )  * ( Power( 10 , ( 0.00539 * impcov ) ) )
 
-def ChannelProtection(BMP_pts, fld):
-        # Flow reduction calcs
-
-        flowdir = ExtractByMask(Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "flowdir")), arcpy.env.mask )
-        Cum_da = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "cumda"))
-        Cumulative_Impervious = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "cumimpcovlake"))
-        flowdir.save(os.path.join(arcpy.env.scratchFolder, "flowdir")) 
-
-        arcpy.CopyRaster_management (os.path.join(hp.Workspace + "\\WIPoutput.mdb", "mask"), os.path.join(arcpy.env.scratchFolder, "mask"))
-        mask = Raster(os.path.join(arcpy.env.scratchFolder, "mask"))
+def ChannelProtection( Basin, BMP_pts, fld, flowdir_lrg, Cum_da, Cumulative_Impervious, mask):
+        """Flow reduction calcs"""
 
         log("Convert Single BMP Project to Raster...")
-        RasBMPpts = hp.GetTempRasterPath("RasBMPpts")
+        flowdir = flowdir_lrg*mask
+        RasBMPpts = GetTempRasterPath("RasBMPpts")
         arcpy.FeatureToRaster_conversion(BMP_pts, fld, RasBMPpts, flowdir)
         thisBMPras = Raster(RasBMPpts)
+        cellSize = arcpy.Describe(Cum_da).MeanCellHeight
 
-        if hp.Basin == 'Georgia Region 1':
+        if Basin == 'Georgia Region 1':
                 Mod_da = 640 * Power( ( thisBMPras / ((190 * 0.875) * Power( 10,(Cumulative_Impervious * 0.0116 )) )), ( 1 / 0.751) )
-        elif hp.Basin == 'Chattahoochee  GA (Rural and Urban)':
+        elif Basin == 'Chattahoochee  GA (Rural and Urban)':
                 Mod_da = 640 * Power( ( thisBMPras / ( 146 * Power( Cumulative_Impervious, 0.31 ) ) ), ( 1 / 0.73 ) )
-        elif hp.Basin == 'Altamaha GA (Rural and Urban)':
+        elif Basin == 'Altamaha GA (Rural and Urban)':
                 Mod_da = 640 * Power( ( thisBMPras / ( 127 * Power( Cumulative_Impervious, 0.31 ) ) ), ( 1 / 0.7 ) )
-        elif hp.Basin in ['Region 1  2006 (Rural) - Blue Ridge NC 2002 (Urban)', 'Blue Ridge Piedmont  NC 2002 (Rural and Urban)']:
+        elif Basin in ['Region 1  2006 (Rural) - Blue Ridge NC 2002 (Urban)', 'Blue Ridge Piedmont  NC 2002 (Rural and Urban)']:
                 Mod_da = 640 * Power( ( thisBMPras / ( 28.5 * Power( Cumulative_Impervious, 0.686 ) ) ), ( 1 / 0.739 ) )
                 
 ##             for below use inverse of: (Power( ( cum_da / 640 ) , 0.554 ) * (1.36 * 0.875)) * ( Power( impcov, 1.241 )) * ( Power( rural2yrQ(Basin,cum_da), 0.323))
 
-        elif hp.Basin in ['SC Piedmont', 'SC Blue Ridge', 'SC Sand Hills' 'SC Coastal']:
-                Mod_da = 640 * Power( ( thisBMPras / ( ( (1.36 * 0.875) * Power( rural2yrQ(hp.Basin,Cum_da), 0.323) ) * Power( Cumulative_Impervious, 1.241 ) ) ), ( 1 / 0.554 ) )
+        elif Basin in ['SC Piedmont', 'SC Blue Ridge', 'SC Sand Hills', 'SC Coastal']:
+                Mod_da = 640 * Power( ( thisBMPras / ( ( (1.36 * 0.875) * Power( rural2yrQ(Basin,Cum_da), 0.323) ) * Power( Cumulative_Impervious, 1.241 ) ) ), ( 1 / 0.554 ) )
 
-        else: raise Exception("Unknown basin: " + hp.Basin)
+        else: raise Exception("Unknown basin: " + Basin)
                 
 
         log("Convert to percent reduction in accumulation...")
         acc_red = ExtractByMask(1 - ( Mod_da / Cum_da), mask)
         acc_red.save(os.path.join(arcpy.env.scratchFolder,"acc_red_cp"))
-
-        ModCumDa_u = hp.BMP2DA(flowdir, "ModCumDa_asc", mask, acc_red)
+        
+        ModCumDa_u = BMP2DA(flowdir, "ModCumDa_asc", mask, acc_red)
 
         log("Convert units...")
-        conv = hp.units['cellsqft'] / 43560
+        conv = cellSize / 43560
         ModCumDa = ModCumDa_u * conv
     
         log("Calculating urbanQcp...")
-        uQcp = urbanQcp(ModCumDa, Cumulative_Impervious)
+        uQcp = urbanQcp(ModCumDa, Cumulative_Impervious, Basin)
 
         return ModCumDa, thisBMPras, uQcp
 
@@ -505,7 +499,7 @@ class tool(object):
     def check(self):
         if not arcpy.env.workspace or 'gdb' not in arcpy.env.workspace:
             raise Exception("Workspace is not set in geoprocessing env settrings, or is not a fileGDB. Fix and rerun")
-        log("\n%s run started at %s from %s" % (self.__class__.__name__, time.ctime(), __file__))
+        log("\n%s run started at %s from %s using workspace %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace))
         
 class Toolbox(object):
     def __init__(self):
@@ -559,6 +553,7 @@ class TopoHydro(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"Flowdir")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Flow Accumulation",
@@ -567,6 +562,7 @@ class TopoHydro(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"Flow_acc")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Drainage Area",
@@ -575,6 +571,7 @@ class TopoHydro(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"Cumda")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Streams",
@@ -583,6 +580,7 @@ class TopoHydro(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"Streams")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         return parameters
 
@@ -639,7 +637,7 @@ class TopoHydro(tool):
             Flow_Acc.save(flowaccPath)
             
             log("Drainage Area Calculation...")
-            CumDA = Flow_Acc * cellSize / 43560
+            CumDA = Flow_Acc * cellSize * cellSize / 43560
             CumDA.save(cumdaPath)
             
             if not manualStreams:
@@ -720,6 +718,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"impcov")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Cover",
@@ -728,6 +727,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcov")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Cover with Lakes",
@@ -736,6 +736,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovlakes")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Vector",
@@ -744,6 +745,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovvec")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Raster Lakes",
@@ -752,6 +754,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"lakes")
+        parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         return parameters
 
@@ -1430,6 +1433,26 @@ class ProdTrans(tool):
         parameterType="Required",
         direction="Output")]
         
+        parameters += [
+        arcpy.Parameter(
+        displayName="Basin",
+        name="basin",
+        datatype="String",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].filter.type = "ValueList"
+        parameters[-1].filter.list = [
+            "Georgia Region 1", 
+            "Chattahoochee  GA (Rural and Urban)", 
+            "Altamaha GA (Rural and Urban)", 
+            "Region 1  2006 (Rural) - Blue Ridge NC 2002 (Urban)", 
+            "Blue Ridge Piedmont  NC 2002 (Rural and Urban)",
+            "SC Piedmont",
+            'SC Blue Ridge', 
+            'SC Sand Hills',
+            'SC Coastal'
+        ]
+        
         return parameters
 
     def updateParameters(self, parameters):
@@ -1501,6 +1524,7 @@ class ProdTrans(tool):
             
             qPath = parameters[28].valueAsText
             pPath = parameters[29].valueAsText
+            Basin = parameters[30].valueAsText
             
             Units = flowdir.meanCellWidth
             
@@ -1727,7 +1751,7 @@ class ProdTrans(tool):
             Dettime.save(os.path.join(arcpy.env.scratchFolder, "dettime.tif"))    
                     
             ##    usgs_calcs = Helper.USGSVars(hp.Basin)
-            uQcp = urbanQcp(cumda, Cumulative_Impervious)
+            uQcp = urbanQcp(cumda, Cumulative_Impervious, Basin)
             uQcp.save("UrbanQ1")
             # hp.saveRasterOutput(urbanQcp, "UrbanQ1")
             
@@ -2102,7 +2126,26 @@ class CIP(tool):
         parameterType="Optional",
         direction="Input")]
         parameters[-1].filter.list = ["Point"]
-       
+        
+        parameters += [
+        arcpy.Parameter(
+        displayName="Basin",
+        name="basin",
+        datatype="String",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].filter.type = "ValueList"
+        parameters[-1].filter.list = [
+            "Georgia Region 1", 
+            "Chattahoochee  GA (Rural and Urban)", 
+            "Altamaha GA (Rural and Urban)", 
+            "Region 1  2006 (Rural) - Blue Ridge NC 2002 (Urban)", 
+            "Blue Ridge Piedmont  NC 2002 (Rural and Urban)",
+            "SC Piedmont",
+            'SC Blue Ridge', 
+            'SC Sand Hills',
+            'SC Coastal'
+        ]
         
         return parameters
 
@@ -2131,6 +2174,7 @@ class CIP(tool):
             StreamLength = parameters[11].valueAsText
             defEro = parameters[12].value
             summary_pt_input = parameters[13].valueAsText
+            Basin = parameters[14].valueAsText
             
             log("\nCIP run %s started at %s" % (ScenName, time.asctime()))
             
@@ -2194,14 +2238,15 @@ class CIP(tool):
                     pointsrc = Raster(os.path.join(arcpy.env.workspace, "pt" + LU + pn))
                     
                 if CP_found > 0:
-                    CumMod_da, RasBMPpts2, throwout = ChannelProtection(ChanBMPpts, bmp_Prop1yr)
-                    
                     Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake") )
-                    urbanQcp = urbanQcp(CumMod_da, Cumulative_Impervious)
+                    
+                    CumMod_da, RasBMPpts2, throwout = ChannelProtection(Basin, ChanBMPpts, bmp_Prop1yr, flowdir, Cum_da, Cumulative_Impervious, arcpy.env.mask) 
+                    
+                    uQcp = urbanQcp(CumMod_da, Cumulative_Impervious, Basin)
                     
                     log("Calculate Urban/Rural ratio...")
                     Rural_1yrQ = Raster(os.path.join(arcpy.env.workspace, "UndevQ"))
-                    URratio = urbanQcp / Rural_1yrQ
+                    URratio = uQcp / Rural_1yrQ
                     
                     log("Add erosivity to production...")# % param)
                     TSSP_ero_ext = CalcErosivity(defEro, TSSprod, pointsrc, URratio, Stream_Raster)
@@ -2229,7 +2274,7 @@ class CIP(tool):
                     len = arcpy.FeatureToRaster_conversion(strBMPs2, bmp_strlngth, os.path.join(arcpy.env.scratchFolder, "len.tif"), flowdir)
                     BMPlengths = Float(len)
                      
-                    lengths = AttExtract(BMPlengths, flowdir,"lengths", Stream_Raster, Units)
+                    lengths = AttExtract(BMPlengths, flowdir, Stream_Raster, LU+pn+'len.tif', Units)
                     
                     log("Remove background values...")
                     lengthsmask = Reclassify(lengths, "VALUE", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
@@ -2239,7 +2284,7 @@ class CIP(tool):
                     arcpy.FeatureToRaster_conversion(strBMPs2, bmp_peff, srp, flowdir)
                     strBMPs3 = Float(Raster(srp))
                     
-                    PropEffnd = AttExtract(strBMPs3, flowdir, "PropEffnd", Stream_Raster)
+                    PropEffnd = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'attx.tif')
                     
                     log("Remove background values...")
                     PropEff = RemoveNulls(PropEffnd)
@@ -2258,7 +2303,7 @@ class CIP(tool):
                         strBMPs3 = Float(slpf)
                         
                         log("Stream reduction per length...")
-                        srlength = AttExtract(strBMPs3, flowdir,"lengths", Stream_Raster)
+                        srlength = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'srLen.tif')
                         
                         log("Remove background values...")
                         srlengthm = RemoveNulls(srlength)
