@@ -506,7 +506,7 @@ class Toolbox(object):
         self.label = "WIP Tools"
         self.alias = "WIP Tools"
         # self.tools = [Baseline, CIP]
-        self.tools = [TopoHydro, ImpCov, Runoff, ProdTrans, Baseline, CIP]
+        self.tools = [TopoHydro, ImpCov, Runoff, ProdTrans, Baseline, CIP, SingleBMP]
         if arcpy.env.scratchWorkspace == "" or arcpy.env.scratchWorkspace.endswith('Default.gdb'):
             arcpy.env.scratchWorkspace = os.path.split(arcpy.env.workspace)[0]
 
@@ -2149,11 +2149,11 @@ class CIP(tool):
         
         return parameters
 
-    def updateParameters(self, parameters):
-        if parameters[3].value:
-            fields = arcpy.ListFields(parameters[3].valueAsText)
+    def updateParameters(self, parameters, bmpptsfield=3):
+        if parameters[bmpptsfield].value:
+            fields = arcpy.ListFields(parameters[bmpptsfield].valueAsText)
             l = [f.name for f in fields]
-            for i in [4, 5, 6, 7, 8, 9, 10, 11]:
+            for i in range(bmpptsfield+1, bmpptsfield+8):
                 parameters[i].filter.list = l
         return
 
@@ -2187,10 +2187,13 @@ class CIP(tool):
             
             pn = GetAlias(bmp_eeff)[:10]
             
-            gdb = "CIP_%s.mdb" % ScenName.replace(" ", "_")
-            arcpy.CreatePersonalGDB_management(os.path.split(arcpy.env.workspace)[0], gdb)
-            cipWorkspace = os.path.join(os.path.split(arcpy.env.workspace)[0], gdb)
-            
+            if ScenName:
+                gdb = "CIP_%s.mdb" % ScenName.replace(" ", "_")
+                arcpy.CreatePersonalGDB_management(os.path.split(arcpy.env.workspace)[0], gdb)
+                cipWorkspace = os.path.join(os.path.split(arcpy.env.workspace)[0], gdb)
+            else:
+                cipWorkspace = arcpy.env.workspace
+                
             vectmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
             BMPpts = os.path.join(arcpy.env.scratchFolder, "BMPpts.shp")
             arcpy.RasterToPolygon_conversion(arcpy.env.mask, vectmask, "SIMPLIFY", "Value")
@@ -2382,4 +2385,15 @@ class CIP(tool):
         except:       
             i, j, k = sys.exc_info()
             EH(i, j, k)
-            
+
+class SingleBMP(CIP):
+    def __init__(self):
+        self.label = "SingleBMP"
+        self.description = "SingleBMP"
+    
+    def getParameterInfo(self):        
+        parameters = super(SingleBMP, self).getParameterInfo()
+        parameters[0].enabled = False
+        parameters[-2].enabled = False
+        return parameters
+    
