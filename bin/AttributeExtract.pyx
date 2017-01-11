@@ -1,4 +1,6 @@
-WIP Tools 3.0
+
+
+"""WIP Tools 3.0
 Copyright (C) 2016 Brown and Caldwell
 
 This program is free software: you can redistribute it and/or modify
@@ -13,7 +15,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+"""
 import time
 import numpy
 from cpython cimport bool
@@ -52,8 +54,8 @@ def extractAlongStream(numpy.ndarray[DTYPE_t, ndim=2] strmInvPts  not None,
     while not complete:
         complete = True
         
-        for r in range(height):
-            for c in range(width):
+        for r in range(1,height-1):
+            for c in range(1,width-1):
             
                 strmInvPt = outputData[r,c]
                 if strmInvPt >= 0:
