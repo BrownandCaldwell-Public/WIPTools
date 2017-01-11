@@ -494,165 +494,12 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir_lrg, Cum_da, Cumulative_Impe
 
         return ModCumDa, thisBMPras, uQcp
 
-def ReductionCalculations(LU, pn, bmps, bmp_type, bmp_CIPproj, bmp_Ex1yr, bmp_Prop1yr, bmp_strlngth, bmp_eeff, bmp_peff, StreamLength, defEro, Basin):
-    Cum_da = Raster(os.path.join(arcpy.env.workspace, "cumda"))
-    flowdir = Raster(os.path.join(arcpy.env.workspace, "flowdir"))
-    Streams_nd = Raster(os.path.join(arcpy.env.workspace, "streams"))
-    Stream_Raster = RemoveNulls(Streams_nd)
-    Units = flowdir.meanCellWidth
-    
-    log("Finding Channel Protection projects...")  # From CIP points only
-    ChanBMPpts = os.path.join(arcpy.env.scratchFolder, "ChanBMPpts.shp")
-    CP_found = GetSubset(bmps, ChanBMPpts , " \"%s\" = 'TRUE' AND \"%s\" < \"%s\" " % (bmp_CIPproj, bmp_Prop1yr, bmp_Ex1yr))
-    
-    log("Finding Stream Restoration projects...")    
-    strBMPs2 = os.path.join(arcpy.env.scratchFolder, "strBMPs2.shp")
-    SR_found = GetSubset(bmps, strBMPs2 , " \"%s\" = 'TRUE' AND \"%s\" = 'Stream Restoration' " % (bmp_CIPproj, bmp_type))
-    
-    log("Finding Existing BMPs...")
-    ExistingBMPs = os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.shp")
-    existing_found = GetSubset(bmps, ExistingBMPs, "NOT ( \"%s\" = 'TRUE' AND ( \"%s\" = 'BMP' OR \"%s\" = 'New BMP' ) ) AND \"%s\" > 0 " % \
-                                                    (bmp_CIPproj, bmp_type, bmp_type, bmp_eeff) )
-    log("Finding CIP BMPs...")
-    CIPBMPs = os.path.join(arcpy.env.scratchFolder, "CIPBMPpts.shp")
-    cipbmps_found = GetSubset(bmps, CIPBMPs, " \"%s\" = 'TRUE' AND \"%s\" = 'BMP' OR \"%s\" = 'New BMP' " % (bmp_CIPproj, bmp_type, bmp_type))
-    
-    TSSprod = Raster(os.path.join(arcpy.env.workspace, "p" + LU + pn))
-    K = Raster(os.path.join(arcpy.env.workspace, "K" + LU + pn))
-    
-    pointsrc = ""
-    if "pt" + LU + pn in arcpy.ListRasters(arcpy.env.workspace):
-        pointsrc = Raster(os.path.join(arcpy.env.workspace, "pt" + LU + pn))
-        
-    if CP_found > 0:
-        Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake") )
-        
-        CumMod_da, RasBMPpts2, throwout = ChannelProtection(Basin, ChanBMPpts, bmp_Prop1yr, flowdir, Cum_da, Cumulative_Impervious, arcpy.env.mask) 
-        
-        uQcp = urbanQcp(CumMod_da, Cumulative_Impervious, Basin)
-        
-        log("Calculate Urban/Rural ratio...")
-        Rural_1yrQ = Raster(os.path.join(arcpy.env.workspace, "UndevQ"))
-        URratio = uQcp / Rural_1yrQ
-        
-        log("Add erosivity to production...")# % param)
-        TSSP_ero_ext = CalcErosivity(defEro, TSSprod, pointsrc, URratio, Stream_Raster)
-        # TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder, "TSSP_ero_ext"))
-        log("Clip to streams...")
-        # and round
-        UrbRurratc = Int(RoundUp( RoundDown( Streams_nd * URratio * 20000 ) / 2 ))
-        
-        URratio_vec = os.path.join(cipWorkspace, LU + "rv" + pn)#
-        log("Vectorize...")
-        StreamToFeature(UrbRurratc, flowdir, URratio_vec, "NO_SIMPLIFY")
-        ConvertGRIDCODEatt(URratio_vec)
-    
-    else:
-        log("  Did not find any Channel Protection Projects in the study area, skipping this part")
-        CumMod_da = Cum_da
-        URratio = os.path.join(arcpy.env.workspace, "UrbRurratio")
-        TSSP_ero_ext = Raster(os.path.join(arcpy.env.workspace, "q" + LU + pn)) * arcpy.env.mask
-    
-    if SR_found < 1:
-        log("  Did not find any Stream Restoration Projects in the study area, skipping this part")
-        TSS_reduc = TSSP_ero_ext
-    else:
-        log("Convert Stream Lengths to Raster...")
-        len = arcpy.FeatureToRaster_conversion(strBMPs2, bmp_strlngth, os.path.join(arcpy.env.scratchFolder, "len.tif"), flowdir)
-        BMPlengths = Float(len)
-         
-        lengths = AttExtract(BMPlengths, flowdir, Stream_Raster, LU+pn+'len.tif', Units)
-        
-        log("Remove background values...")
-        lengthsmask = Reclassify(lengths, "VALUE", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
-        
-        log("Convert Stream Restoration Projects to Raster...")
-        srp = GetTempRasterPath("srp")
-        arcpy.FeatureToRaster_conversion(strBMPs2, bmp_peff, srp, flowdir)
-        strBMPs3 = Float(Raster(srp))
-        
-        PropEffnd = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'attx.tif')
-        
-        log("Remove background values...")
-        PropEff = RemoveNulls(PropEffnd)
-        
-        log("Production for Stream Restoration Projects...")
-        StrTSSRed = lengthsmask * TSSprod * PropEff / 100
-        
-        log("Reduce production for Stream Restoration Projects...")
-        TSS_reduc = TSSP_ero_ext - StrTSSRed
-        
-        if StreamLength:
-            
-            log("Convert Stream Projects to Raster...")
-            #~ print bmp_peff
-            slpf = arcpy.FeatureToRaster_conversion(strBMPs2, StreamLength, os.path.join(arcpy.env.scratchFolder, "slpf.tif"), flowdir)
-            strBMPs3 = Float(slpf)
-            
-            log("Stream reduction per length...")
-            srlength = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'srLen.tif')
-            
-            log("Remove background values...")
-            srlengthm = RemoveNulls(srlength)
-            
-            log("Reclassify flowdirection to find straight paths...")
-            Flowdirs = Reclassify(flowdir, "VALUE", "1 1;2 0;4 1;8 0;16 1;32 0;64 1;128 0", "DATA")
-            
-            log("Reclassify flowdirection to find diagonal paths...")
-            Flowdird = Reclassify(flowdir, "VALUE", "1 0;2 1;4 0;8 1;16 0;32 1;64 0;128 1", "DATA")
-            
-            log("Calculate distance grid...")
-            Dist = ( Flowdirs + Flowdird * 1.4142) * Units
-            
-            log("Stream Length Reduction...")
-            
-            StrLenRed = srlengthm * Dist * lengthsmask
-            TSS_reduc = TSS_reduc - StrLenRed
-        
-    # Get and combine all the efficiencies used
-    if existing_found > 0: 
-        log("Convert Existing Efficiency to Raster...")
-        arcpy.FeatureToRaster_conversion(ExistingBMPs, bmp_eeff, os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.tif"), flowdir)
-        ExistingBMPs = Raster(os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.tif"))
-        ExistingBrc = RemoveNulls(ExistingBMPs)
-        
-    if cipbmps_found > 0:
-        log("Convert CIP Efficiency to Raster...")
-        CIPBMPpt_temp = GetTempRasterPath("CIPBMPs")
-        arcpy.FeatureToRaster_conversion(CIPBMPs, bmp_peff, CIPBMPpt_temp, flowdir)
-        CIPBMPptsRas = Raster(CIPBMPpt_temp)
-        CIPBMPrc = RemoveNulls(CIPBMPptsRas)
-    
-    if existing_found and cipbmps_found:
-        log("Combine reduction efficiencies...")
-        redvar = ExistingBrc + CIPBMPrc
-    elif existing_found:
-        redvar = ExistingBrc
-    elif cipbmps_found:
-        redvar = CIPBMPrc
-    else:
-        redvar = None
-        log("  WARNING: Did not find any Existing OR CIP projects, so not reducing accumulation")
-        
-    log("Calculate Load Reduction...")
-    if type(redvar) == Raster:
-        wtredvar = 1 - ( K * ( 1 - (redvar / 100.0 ) ) ) * arcpy.env.mask
-        wtredvar.save(os.path.join(arcpy.env.scratchFolder, "wtredvar"))
-        TSSLoadcip = BMP2DA(flowdir, "TSSLoadcip", TSS_reduc, wtredvar)
-    else:
-        TSSLoadcip = BMP2DA(flowdir, "TSSLoadcip", TSS_reduc)        
-    
-    return TSSLoadcip
 
-    
 class tool(object):
-    def __init__(self):
-        self.label = None
-        
     def check(self):
         if not arcpy.env.workspace or 'gdb' not in arcpy.env.workspace:
             raise Exception("Workspace is not set in geoprocessing env settrings, or is not a fileGDB. Fix and rerun")
-        log("\n%s run started at %s from %s using workspace %s" % (self.label, time.ctime(), __file__, arcpy.env.workspace))
+        log("\n%s run started at %s from %s using workspace %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace))
         
 class Toolbox(object):
     def __init__(self):
@@ -2104,7 +1951,6 @@ class Baseline(tool):
                 
             pn = GetAlias(bmp_eff)[:10]
             for LU in landuses:
-            
                 TSSProd = Raster(os.path.join(arcpy.env.workspace, "q" + LU + pn)) * arcpy.env.mask
                 
                 K = os.path.join(arcpy.env.workspace, "K" + LU[0] + pn)
@@ -2169,7 +2015,7 @@ class CIP(tool):
         
         parameters += [
         arcpy.Parameter(
-        displayName="Land Use",
+        displayName="Landuse",
         name="LU",
         datatype="String",
         parameterType="Required",
@@ -2294,22 +2140,22 @@ class CIP(tool):
         parameterType="Optional",
         direction="Input")]
         parameters[-1].filter.list = ["Point"]
-        
+
         return parameters
 
-    def updateParameters(self, parameters, bmpptsfield=2):
+    def updateParameters(self, parameters, bmpptsfield=3):
         if parameters[bmpptsfield].value:
             fields = arcpy.ListFields(parameters[bmpptsfield].valueAsText)
             l = [f.name for f in fields]
-            for i in range(bmpptsfield+1, bmpptsfield+9):
+            for i in range(bmpptsfield+1, bmpptsfield+8):
                 parameters[i].filter.list = l
         return
 
-    def execute(self, parameters, messages): # bmps, bmp_type, bmp_CIPproj, bmp_Ex1yr, bmp_Prop1yr, bmp_strlngth, bmp_eeff, bmp_peff, StreamLength, defEro, Basin
+    def execute(self, parameters, messages):
         try:
             tool.check(self)
             ScenName = parameters[0].valueAsText
-            landuse = parameters[1].value.upper()[0]
+            LU = parameters[1].valueAsText.upper()[0]
             bmp_noclip = parameters[2].valueAsText
             bmp_type = parameters[3].valueAsText
             bmp_CIPproj = parameters[4].valueAsText
@@ -2323,14 +2169,34 @@ class CIP(tool):
             Basin = parameters[12].valueAsText
             summary_pt_input = parameters[13].valueAsText
             
-            gdb = "CIP_%s.mdb" % ScenName.replace(" ", "_")
-            arcpy.CreatePersonalGDB_management(os.path.split(arcpy.env.workspace)[0], gdb)
-            cipWorkspace = os.path.join(os.path.split(arcpy.env.workspace)[0], gdb)
+            log("\nCIP run %s started at %s" % (ScenName, time.asctime()))
             
+            landuses = []
+            if use_existing:
+                landuses.append("E")
+            if use_future:
+                landuses.append("F")
+            if not landuses: raise Exception("You must select at least one type of landuse")
+            
+            pn = GetAlias(bmp_eeff)[:10]
+            
+            if ScenName:
+                gdb = "CIP_%s.mdb" % ScenName.replace(" ", "_")
+                arcpy.CreatePersonalGDB_management(os.path.split(arcpy.env.workspace)[0], gdb)
+                cipWorkspace = os.path.join(os.path.split(arcpy.env.workspace)[0], gdb)
+            else:
+                cipWorkspace = arcpy.env.workspace
+                
             vectmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
             BMPpts = os.path.join(arcpy.env.scratchFolder, "BMPpts.shp")
             arcpy.RasterToPolygon_conversion(arcpy.env.mask, vectmask, "SIMPLIFY", "Value")
             arcpy.Clip_analysis(bmp_noclip, vectmask, BMPpts)
+            
+            Cum_da = Raster(os.path.join(arcpy.env.workspace, "cumda"))
+            flowdir = Raster(os.path.join(arcpy.env.workspace, "flowdir"))
+            Streams_nd = Raster(os.path.join(arcpy.env.workspace, "streams"))
+            Stream_Raster = RemoveNulls(Streams_nd)
+            Units = flowdir.meanCellWidth
             
             if summary_pt_input:
                 summary_pts = os.path.join(cipWorkspace, "summaryptsCIP")
@@ -2341,13 +2207,149 @@ class CIP(tool):
             CIPBMPpts = os.path.join(arcpy.env.scratchFolder, "CIPpts.shp")
             CIP_found = GetSubset(BMPpts, CIPBMPpts, " \"%s\" = 'TRUE' " % bmp_CIPproj)
             if not CIP_found:
-                raise Exception("Did not find any CIP Projects in the study area, stopping" )
-            
-            pn = GetAlias(bmp_eeff)[:10]
-            
-            TSSLoadcip = ReductionCalculations(landuse, pn, bmps, bmp_type, bmp_CIPproj, bmp_Ex1yr, 
-                bmp_Prop1yr, bmp_strlngth, bmp_eeff, bmp_peff, StreamLength, defEro, Basin)
+                raise Exception, "Did not find any CIP Projects in the study area, stopping"
                 
+            log("Finding Channel Protection projects...")  # From CIP points only
+            ChanBMPpts = os.path.join(arcpy.env.scratchFolder, "ChanBMPpts.shp")
+            CP_found = GetSubset(CIPBMPpts, ChanBMPpts , " \"%s\" < \"%s\" " % (bmp_Prop1yr, bmp_Ex1yr))
+            
+            log("Finding Stream Restoration projects...")    
+            strBMPs2 = os.path.join(arcpy.env.scratchFolder, "strBMPs2.shp")
+            SR_found = GetSubset(CIPBMPpts, strBMPs2 , " \"%s\" = 'Stream Restoration' " % bmp_type)
+            
+            log("Finding Existing BMPs...")
+            ExistingBMPs = os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.shp")
+            existing_found = GetSubset(BMPpts, ExistingBMPs, "NOT ( \"%s\" = 'TRUE' AND ( \"%s\" = 'BMP' OR \"%s\" = 'New BMP' ) ) AND \"%s\" > 0 " % \
+                                                            (bmp_CIPproj, bmp_type, bmp_type, bmp_eeff) )
+            log("Finding CIP BMPs...")
+            CIPBMPs = os.path.join(arcpy.env.scratchFolder, "CIPBMPpts.shp")
+            cipbmps_found = GetSubset(CIPBMPpts, CIPBMPs, " \"%s\" = 'BMP' OR \"%s\" = 'New BMP' " % (bmp_type, bmp_type))
+
+            TSSprod = Raster(os.path.join(arcpy.env.workspace, "p" + LU + pn))
+            K = Raster(os.path.join(arcpy.env.workspace, "K" + LU + pn))
+            
+            pointsrc = ""
+            if "pt" + LU + pn in arcpy.ListRasters(arcpy.env.workspace):
+                pointsrc = Raster(os.path.join(arcpy.env.workspace, "pt" + LU + pn))
+                
+            if CP_found > 0:
+                Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake") )
+                
+                CumMod_da, RasBMPpts2, throwout = ChannelProtection(Basin, ChanBMPpts, bmp_Prop1yr, flowdir, Cum_da, Cumulative_Impervious, arcpy.env.mask) 
+                
+                uQcp = urbanQcp(CumMod_da, Cumulative_Impervious, Basin)
+                
+                log("Calculate Urban/Rural ratio...")
+                Rural_1yrQ = Raster(os.path.join(arcpy.env.workspace, "UndevQ"))
+                URratio = uQcp / Rural_1yrQ
+                
+                log("Add erosivity to production...")# % param)
+                TSSP_ero_ext = CalcErosivity(defEro, TSSprod, pointsrc, URratio, Stream_Raster)
+                # TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder, "TSSP_ero_ext"))
+                log("Clip to streams...")
+                # and round
+                UrbRurratc = Int(RoundUp( RoundDown( Streams_nd * URratio * 20000 ) / 2 ))
+                
+                URratio_vec = os.path.join(cipWorkspace, LU + "rv" + pn)#
+                log("Vectorize...")
+                StreamToFeature(UrbRurratc, flowdir, URratio_vec, "NO_SIMPLIFY")
+                ConvertGRIDCODEatt(URratio_vec)
+            
+            else:
+                log("  Did not find any Channel Protection Projects in the study area, skipping this part")
+                CumMod_da = Cum_da
+                URratio = os.path.join(arcpy.env.workspace, "UrbRurratio")
+                TSSP_ero_ext = Raster(os.path.join(arcpy.env.workspace, "q" + LU + pn)) * arcpy.env.mask
+            
+            if SR_found < 1:
+                log("  Did not find any Stream Restoration Projects in the study area, skipping this part")
+                TSS_reduc = TSSP_ero_ext
+            else:
+                log("Convert Stream Lengths to Raster...")
+                len = arcpy.FeatureToRaster_conversion(strBMPs2, bmp_strlngth, os.path.join(arcpy.env.scratchFolder, "len.tif"), flowdir)
+                BMPlengths = Float(len)
+                 
+                lengths = AttExtract(BMPlengths, flowdir, Stream_Raster, LU+pn+'len.tif', Units)
+                
+                log("Remove background values...")
+                lengthsmask = Reclassify(lengths, "VALUE", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
+                
+                log("Convert Stream Restoration Projects to Raster...")
+                srp = GetTempRasterPath("srp")
+                arcpy.FeatureToRaster_conversion(strBMPs2, bmp_peff, srp, flowdir)
+                strBMPs3 = Float(Raster(srp))
+                
+                PropEffnd = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'attx.tif')
+                
+                log("Remove background values...")
+                PropEff = RemoveNulls(PropEffnd)
+                
+                log("Production for Stream Restoration Projects...")
+                StrTSSRed = lengthsmask * TSSprod * PropEff / 100
+                
+                log("Reduce production for Stream Restoration Projects...")
+                TSS_reduc = TSSP_ero_ext - StrTSSRed
+                
+                if StreamLength:
+                    
+                    log("Convert Stream Projects to Raster...")
+                    #~ print bmp_peff
+                    slpf = arcpy.FeatureToRaster_conversion(strBMPs2, StreamLength, os.path.join(arcpy.env.scratchFolder, "slpf.tif"), flowdir)
+                    strBMPs3 = Float(slpf)
+                    
+                    log("Stream reduction per length...")
+                    srlength = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'srLen.tif')
+                    
+                    log("Remove background values...")
+                    srlengthm = RemoveNulls(srlength)
+                    
+                    log("Reclassify flowdirection to find straight paths...")
+                    Flowdirs = Reclassify(flowdir, "VALUE", "1 1;2 0;4 1;8 0;16 1;32 0;64 1;128 0", "DATA")
+                    
+                    log("Reclassify flowdirection to find diagonal paths...")
+                    Flowdird = Reclassify(flowdir, "VALUE", "1 0;2 1;4 0;8 1;16 0;32 1;64 0;128 1", "DATA")
+                    
+                    log("Calculate distance grid...")
+                    Dist = ( Flowdirs + Flowdird * 1.4142) * Units
+                    
+                    log("Stream Length Reduction...")
+                    
+                    StrLenRed = srlengthm * Dist * lengthsmask
+                    TSS_reduc = TSS_reduc - StrLenRed
+                
+            # Get and combine all the efficiencies used
+            if existing_found > 0: 
+                log("Convert Existing Efficiency to Raster...")
+                arcpy.FeatureToRaster_conversion(ExistingBMPs, bmp_eeff, os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.tif"), flowdir)
+                ExistingBMPs = Raster(os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.tif"))
+                ExistingBrc = RemoveNulls(ExistingBMPs)
+                
+            if cipbmps_found > 0:
+                log("Convert CIP Efficiency to Raster...")
+                CIPBMPpt_temp = GetTempRasterPath("CIPBMPs")
+                arcpy.FeatureToRaster_conversion(CIPBMPs, bmp_peff, CIPBMPpt_temp, flowdir)
+                CIPBMPptsRas = Raster(CIPBMPpt_temp)
+                CIPBMPrc = RemoveNulls(CIPBMPptsRas)
+            
+            if existing_found and cipbmps_found:
+                log("Combine reduction efficiencies...")
+                redvar = ExistingBrc + CIPBMPrc
+            elif existing_found:
+                redvar = ExistingBrc
+            elif cipbmps_found:
+                redvar = CIPBMPrc
+            else:
+                redvar = None
+                log("  WARNING: Did not find any Existing OR CIP projects, so not reducing accumulation")
+                
+            log("Calculate Load Reduction...")
+            if type(redvar) == Raster:
+                wtredvar = 1 - ( K * ( 1 - (redvar / 100.0 ) ) ) * arcpy.env.mask
+                wtredvar.save(os.path.join(arcpy.env.scratchFolder, "wtredvar"))
+                TSSLoadcip = BMP2DA(flowdir, "TSSLoadcip", TSS_reduc, wtredvar)
+            else:
+                TSSLoadcip = BMP2DA(flowdir, "TSSLoadcip", TSS_reduc)
+            
             log("Clip...")
             TSSLoadOutput = TSSLoadcip * arcpy.env.mask
             TSSLoadOutput.save(os.path.join(cipWorkspace, "L" + LU[0] + pn))
@@ -2363,7 +2365,6 @@ class CIP(tool):
             
             TSSYldvec = os.path.join(cipWorkspace, LU[0] + "yV" + pn)#
             log("Vectorize...")
-            flowdir = Raster(os.path.join(arcpy.env.workspace, "flowdir"))
             StreamToFeature(TSSYield_cl, flowdir, TSSYldvec, "NO_SIMPLIFY")
             
             ConvertGRIDCODEatt(TSSYldvec)
@@ -2383,41 +2384,8 @@ class SingleBMP(CIP):
         self.description = "SingleBMP"
     
     def getParameterInfo(self):        
-        parameters = super(SingleBMP, self).getParameterInfo()[1:-1]
+        parameters = super(SingleBMP, self).getParameterInfo()
+        parameters[0].enabled = False
+        parameters[-2].enabled = False
         return parameters
     
-    def updateParameters(self, parameters):
-        super(SingleBMP, self).updateParameters(parameters, 1)
-    
-    def execute(self, parameters, messages):
-        try:
-            tool.check(self)
-            landuse      = parameters[0].value.upper()[0]
-            bmp_noclip   = parameters[1].valueAsText
-            bmp_type     = parameters[2].valueAsText
-            bmp_CIPproj  = parameters[3].valueAsText
-            bmp_Ex1yr    = parameters[4].valueAsText
-            bmp_Prop1yr  = parameters[5].valueAsText
-            bmp_strlngth = parameters[6].valueAsText
-            bmp_eeff     = parameters[7].valueAsText
-            bmp_peff     = parameters[8].valueAsText
-            StreamLength = parameters[9].valueAsText
-            defEro       = parameters[10].value
-            Basin        = parameters[11].valueAsText
-            OIDfield = arcpy.Describe(bmp_noclip).OIDFieldName
-            pn = GetAlias(bmp_eeff)[:10]
-            
-            with arcpy.da.SearchCursor(bmp_noclip, [OIDfield]) as cursor:
-                for row in cursor:
-                    OID = row[0]
-                    log("Running COP for point OID=%i" % OID)
-                    thisPointFC = os.path.join(arcpy.env.scratchFolder, str(OID)+".shp")
-                    GetSubset(bmp_noclip, thisPointFC, "%s = %s" % (OIDfield, OID))
-                    
-                    TSSLoadsingle = ReductionCalculations(landuse, pn, thisPointFC, bmp_type, bmp_CIPproj, bmp_Ex1yr, 
-                        bmp_Prop1yr, bmp_strlngth, bmp_eeff, bmp_peff, StreamLength, defEro, Basin)
-                    
-                    ## do something with results
-        except:       
-            i, j, k = sys.exc_info()
-            EH(i, j, k)            
