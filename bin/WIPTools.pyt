@@ -2143,11 +2143,11 @@ class CIP(tool):
 
         return parameters
 
-    def updateParameters(self, parameters, bmpptsfield=3):
+    def updateParameters(self, parameters, bmpptsfield=2):
         if parameters[bmpptsfield].value:
             fields = arcpy.ListFields(parameters[bmpptsfield].valueAsText)
             l = [f.name for f in fields]
-            for i in range(bmpptsfield+1, bmpptsfield+8):
+            for i in range(bmpptsfield+1, bmpptsfield+9):
                 parameters[i].filter.list = l
         return
 
@@ -2171,21 +2171,11 @@ class CIP(tool):
             
             log("\nCIP run %s started at %s" % (ScenName, time.asctime()))
             
-            landuses = []
-            if use_existing:
-                landuses.append("E")
-            if use_future:
-                landuses.append("F")
-            if not landuses: raise Exception("You must select at least one type of landuse")
-            
             pn = GetAlias(bmp_eeff)[:10]
             
-            if ScenName:
-                gdb = "CIP_%s.mdb" % ScenName.replace(" ", "_")
-                arcpy.CreatePersonalGDB_management(os.path.split(arcpy.env.workspace)[0], gdb)
-                cipWorkspace = os.path.join(os.path.split(arcpy.env.workspace)[0], gdb)
-            else:
-                cipWorkspace = arcpy.env.workspace
+            gdb = "CIP_%s.mdb" % ScenName.replace(" ", "_")
+            arcpy.CreatePersonalGDB_management(os.path.split(arcpy.env.workspace)[0], gdb)
+            cipWorkspace = os.path.join(os.path.split(arcpy.env.workspace)[0], gdb)
                 
             vectmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
             BMPpts = os.path.join(arcpy.env.scratchFolder, "BMPpts.shp")
@@ -2384,8 +2374,265 @@ class SingleBMP(CIP):
         self.description = "SingleBMP"
     
     def getParameterInfo(self):        
-        parameters = super(SingleBMP, self).getParameterInfo()
-        parameters[0].enabled = False
-        parameters[-2].enabled = False
+        parameters = super(SingleBMP, self).getParameterInfo()[1:-1]
         return parameters
+        
+    def updateParameters(self, parameters):
+        super(SingleBMP, self).updateParameters(parameters, 1)
     
+    def execute(self, parameters, messages):
+        try:
+            tool.check(self)
+            LU = parameters[0].valueAsText.upper()[0]
+            bmp_noclip = parameters[1].valueAsText
+            bmp_type_fld = parameters[2].valueAsText
+            bmp_CIPproj_fld = parameters[3].valueAsText
+            bmp_Ex1yr_fld = parameters[4].valueAsText
+            bmp_Prop1yr_fld = parameters[5].valueAsText
+            bmp_strlngth_fld = parameters[6].valueAsText
+            bmp_eeff_fld = parameters[7].valueAsText
+            bmp_peff_fld = parameters[8].valueAsText
+            StreamLength_fld = parameters[9].valueAsText
+            defEro = parameters[10].value
+            Basin = parameters[11].valueAsText
+            
+            log("\nCIP run %s started at %s" % (ScenName, time.asctime()))
+            
+            OIDfield = arcpy.Describe(bmp_noclip).OIDFieldName
+            pn = GetAlias(bmp_eeff)[:10]
+            # hp.SetPIDs(bmp_noclip)
+            
+            vectmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
+            BMPpts = os.path.join(arcpy.env.scratchFolder, "BMPpts.shp")
+            arcpy.RasterToPolygon_conversion(arcpy.env.mask, vectmask, "SIMPLIFY", "Value")
+            arcpy.Clip_analysis(bmp_noclip, vectmask, BMPpts)
+            wtredBMPs = os.path.join(arcpy.env.scratchFolder, "wtredBMPs")
+            
+            Cum_da = Raster(os.path.join(arcpy.env.workspace, "cumda"))
+            flowdir = Raster(os.path.join(arcpy.env.workspace, "flowdir"))
+            Streams_nd = Raster(os.path.join(arcpy.env.workspace, "streams"))
+            Stream_Raster = RemoveNulls(Streams_nd)
+            Rural_1yrQ = Raster(os.path.join(arcpy.env.workspace, "UndevQ"))
+            Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake"))
+            pointsrc = Raster(os.path.join(arcpy.env.workspace, "pt" + pn))
+            existingTSSprod = os.path.join(arcpy.env.workspace, "p" + LU + pn)
+            Units = flowdir.meanCellWidth
+            
+            # existing_params = hp.GetAlias(existing_efficiencies)
+            # proposed_params = hp.GetAlias(proposed_efficiencies)
+            # streamreduc_params = hp.GetAlias(stream_reductions)
+            # if not existing_params.keys().sort() == proposed_params.keys().sort() == streamreduc_params.keys().sort():
+                # raise Exception, "Parameters found for Existing efficiencies, Proposed efficiencies, and Stream Reductions does not match"
+                
+            # params = {}
+            
+            # exec(hp.models['ProdTrans']['input'][-1])
+            
+            log("Preparing input BMPs...")    
+            
+            # for p in existing_params: # If we switch the loops below to be param first point second, then we could include this stuff in the param loop. Right now we don't want to run this calc for every point, hence this bit of code duplication outide the main loops
+                            
+            # pn = p[:10].strip()
+            
+            # pointsrc = ""
+            # if os.path.exists(os.path.join(arcpy.env.scratchFolder, "pt" + pn)):
+                # pointsrc = "pt" + pn
+            # defEro = 0
+            # if p in params:
+                # defEro = params[p]['DefEro']   
+                
+            log("Calculate Urban/Rural ratio...")
+    ##        usgs_calcs = Helper.USGSVars(hp.Basin)
+            urbanQcpbas = urbanQcp(CumMod_da, Cumulative_Impervious, Basin)
+            URratio = urbanQcpbas / Rural_1yrQ
+            
+            log("Add erosivity to existing %s production..." % p)
+            TSSP_ero_ext = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster) 
+            # arcpy.CopyRaster_management(TSSP_ero_ext, os.path.join(arcpy.env.scratchFolder, "ero") + p[:10].strip())
+            
+            
+            # log("Checking for input BMPs in your area...")    
+            # all = arcpy.GetCount_management(BMPpts)
+            # if all <= 1:
+                # raise Exception("You must have more than one point to run this tool!")
+            
+            
+            log("Looping through input BMPs...")    
+            BMProws = arcpy.SearchCursor(BMPpts)
+            counter = 0
+            count = 1
+            #~ while BMProw:        
+            for BMProw in BMProws:
+                
+                # print "%s\n" % (75*'-')
+                # print BMPpts
+                BMP_FID = BMProw.getValue(OIDfield) 
+                
+                log("  Processing point %s of %s..." % (count, all)) 
+                # print "   %s BMPID: %s\n" % (BMPpts, BMP_FID)
+                
+                bmp_type = BMProw.getValue(bmp_type_fld)
+                bmp_Ex1yr = float(BMProw.getValue(bmp_Ex1yr_fld))
+                bmp_Prop1yr = float(BMProw.getValue(bmp_Prop1yr_fld))
+                log("  Found bmp type of %s, existing Q1 of %s, and proposed Q1 of %s for PID %s" % (bmp_type, bmp_Ex1yr, bmp_Prop1yr, BMP_FID))
+                
+                SinBMPpts = os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp")
+                GetSubset(BMPpts, SinBMPpts, " \"PID\" = %s " % BMP_FID)
+                
+                SingleBMP = os.path.join(arcpy.env.scratchFolder, "SingleBMP")
+                log("Convert this project to a raster mask...")
+                arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder,SinBMPpts), "PID", SingleBMP, flowdir)
+                SinBMPmask = Reclassify(SingleBMP, "VALUE", "NoData 0; 0.001 100000 1", "DATA")
+                SinBMPmask.save(os.path.join(arcpy.env.scratchFolder,"SinBMPmask"))
+                
+                # for p in existing_params:
+                # pn = p[:10].strip()
+                K = os.path.join(arcpy.env.scratchFolder, "K" + pn)
+
+                TSSP_ero_ext = Raster(os.path.join(arcpy.env.scratchFolder, "ero" + pn))
+                
+                sum, chanp_red, washoff_red = 0, 0, 0
+                
+                bmp_eeff = float(BMProw.getValue(existing_params[p]))
+                bmp_peff = float(BMProw.getValue(proposed_params[p]))
+                stream_red_per_ft = float(BMProw.getValue(streamreduc_params[p])) 
+                log("  Found existing bmp efficiency of %s, proposed bmp efficiency of %s, and stream reduction of %s for PID %s" % (bmp_eeff, bmp_peff, stream_red_per_ft, BMP_FID))
+                
+                # pointsrc = ""
+                # if os.path.exists(os.path.join(arcpy.env.scratchFolder, "pt" + pn)):
+                    # pointsrc = "pt" + pn
+                # defEro = 0
+                
+                # if p in params:
+                    # defEro = params[p]['DefEro']          
+                
+                if bmp_type.lower() in ['bmp', 'new bmp']:
+                    if bmp_Prop1yr < bmp_Ex1yr:
+                        Channel_Prot = 1
+                    else:
+                        Channel_Prot = 0
+                        
+                    if not defEro:
+                        log("   No Default erosivity for this BMP")
+                        Channel_Prot = 0
+                    
+                    if not Channel_Prot:
+                        log("   No Channel Protection from this BMP")
+                    else:
+                        
+                        log("   Calculating Channel Protection from this BMP")
+                        #~ arcpy.Merge_management ("ChanBMPpts.shp; SinBMPpts.shp", "merge.shp")
+                        ModCumDa, thisBMPras, this_ds = regression.ChannelProtection(hp, SinBMPpts, sys.argv[4])
+                        ModCumDa.save(os.path.join(arcpy.env.scratchFolder,"modcumda"))
+                        this_ds.save(os.path.join(arcpy.env.scratchFolder,"this_ds"))
+                        
+                        log("Calculate Future Urban/Rural ratio...")
+                        URratio = this_ds / Rural_1yrQ
+                        URratio.save(os.path.join(arcpy.env.scratchFolder,"urratio"))
+                        
+                        TSSP_ero = Helper.CalcErosivity(hp, defEro, TSSprod, pointsrc, URratio, Stream_Raster)
+                        TSSP_ero.save(os.path.join(arcpy.env.scratchFolder,"tssp_ero"))
+                        
+                        log("%s reduction..." % p)
+                        TSSred = TSSP_ero_ext - TSSP_ero
+                        TSSred.save(os.path.join(arcpy.env.scratchFolder,"tssred"))
+                        
+                        log("Tabulating %s reduction..." % p)
+                        chanp_red = hp.Zonal(TSSred)
+                        
+                        print "    %s Reduction component from Channel protection = %s\n" % (p, chanp_red)
+                                
+                    if bmp_peff > bmp_eeff:
+                        WQ_benefit = 1
+                    else: 
+                        WQ_benefit = 0
+                        
+                    if not WQ_benefit:
+                        log("   No Water Quality Benefit from this BMP")
+                    else:
+                        log("   Calculating Water Quality Benefit from this BMP")
+                        REMBMPpts = os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp")
+                        hp.GetSubset(BMPpts, REMBMPpts, " \"PID\" <> %s AND %s > 0" % (BMP_FID, existing_params[p]))
+                        #~ arcpy.CopyFeatures_management(BMPpts, )
+                        #~ rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp"))
+                        #~ row = rows.next()
+                        #~ while row:
+                            #~ if row.getValue("PID") == BMP_FID or float(row.getValue(existing_params[p])) <= 0:
+                                #~ rows.deleteRow(row)
+                            #~ row = rows.next()
+                        #~ del row, rows
+                        
+                        #~ log("Adding erosivity to %s production..." % p)
+                        data_ero = Helper.CalcErosivity(hp, defEro, TSSprod, pointsrc, URratio, Stream_Raster)
+                        
+                        REMBMPs = (os.path.join(arcpy.env.scratchFolder, "REMBMPs"))
+                        log("Convert all other BMPs to Raster...")
+                        arcpy.FeatureToRaster_conversion(REMBMPpts, existing_params[p], REMBMPs, flowdir)
+                        BMPs = hp.RemoveNulls(REMBMPs)
+                        wtredBMPs =  ExtractByMask(BMPs / 100.0,  hp.Mask)
+                       
+                         
+                        arcpy.CopyRaster_management(data_ero, os.path.join(arcpy.env.scratchFolder,"data_ero"))
+                        data_ero1 = Raster(os.path.join(arcpy.env.scratchFolder,"data_ero"))
+                        counter +=1
+                        TSSLoad = hp.BMP2DA(flowdir, pn+str(counter), data_ero1, wtredBMPs)
+                        
+                                          
+                        log("%s reduction..." % p)
+                        TSSLoadpt = TSSLoad * (bmp_peff - bmp_eeff) * SinBMPmask / 100
+                        
+                        log("Tabulating %s reduction..." % p)
+                        washoff_red = hp.Zonal(TSSLoadpt)                    
+                        print "    %s Reduction component from Washoff benefit = %s\n" % (p, washoff_red)
+                        WQ = washoff_red
+                        
+                    sum = chanp_red + washoff_red
+                    print TSSprod, sum
+                
+                    log("Writing attributes")
+                    hp.SetAtt(BMP_FID, hp.ShortName(p) + "red" + LU[0], sum, bmp_noclip)
+                
+                if bmp_type.lower() in ['stream restoration']: 
+                    # Calculate in-stream reduction ################################
+                    log("Convert Stream Lengths to Raster...")
+                    arcpy.env.extent = os.path.join(arcpy.env.scratchFolder, "flowdir")
+                    arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp"), strlngth, os.path.join(arcpy.env.scratchFolder, "len"), flowdir)
+                    slengths = Float(Raster(os.path.join(arcpy.env.scratchFolder, "len")))
+                      
+                    thisstream = hp.AttExtract(slengths, flowdir, "thisstream", Stream_Raster, Units)
+                    
+                    log("Make mask...")
+                    ThisBMPmask = Reclassify(thisstream, "Value", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
+                    ThisBMPmask.save(os.path.join(arcpy.env.scratchFolder,"ThisBMPmask"))
+                    
+                    log("Calculate reduction...")
+                    streamprod = (bmp_peff/ 100) * Raster(TSSprod) * ThisBMPmask * Power(URratio, 1.5)
+                    streamprod.save(os.path.join(arcpy.env.scratchFolder,"streamprod"))
+                    
+                    log("Reclassify flowdirection to find straight paths...")
+                    Flowdirs = Reclassify(flowdir, "VALUE", "1 1;2 0;4 1;8 0;16 1;32 0;64 1;128 0", "DATA")
+                        
+                    log("Reclassify flowdirection to find diagonal paths...")
+                    Flowdird = Reclassify(flowdir, "VALUE", "1 0;2 1;4 0;8 1;16 0;32 1;64 0;128 1", "DATA")
+                        
+                    log("Calculate distance grid...")
+                    Dist = (Flowdirs + Flowdird * 1.4142) * hp.units['size']
+                    
+                    log("Calculate length")
+                    thislen = Dist * ThisBMPmask
+                    dist_red = hp.Zonal(thislen) * stream_red_per_ft
+                    print "stream_red_per_ft: %s, dist_red: %s" % (stream_red_per_ft, dist_red)
+                    
+                    log("Summarize Stream reduction from point...")
+                    stream_red = hp.Zonal(streamprod) + dist_red
+                    
+                    print "Stream reduction", stream_red
+                    
+                    log("Writing attributes")
+                    hp.SetAtt(BMP_FID, hp.ShortName(p) + "red" + LU[0], stream_red, bmp_noclip)
+            
+                count += 1   
+        
+        except:       
+            i, j, k = sys.exc_info()
+            EH(i, j, k)    
