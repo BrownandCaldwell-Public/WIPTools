@@ -49,8 +49,8 @@ def flowAccumulate(numpy.ndarray[ITYPE_t, ndim=2] flowdirData not None, numpy.nd
             r = R
             count += 1
 
-            if isinstance(weightData, numpy.ndarray): 
-                weight = weightData[r, c]
+            if isinstance(weightData, numpy.ndarray): ### This appears to be true even if weightData = None?
+                weight = weightData[r, c] 
             else:
                 weight = 1.0
                     

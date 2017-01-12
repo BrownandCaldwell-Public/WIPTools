@@ -94,7 +94,7 @@ def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
             raise Exception("Input weight raster (%s) is not the same size (%s) as flow direction raster size (%s); was the processing extent env variable set up?" % (bmpsInput.catalogPath, nbmppts.size, nflowdir.size))
     else:
         nbmppts = None
-        
+    
     arr = bmpFlowModFast.flowAccumulate(nflowdir, nweight, nbmppts)
 
     newRaster = arcpy.NumPyArrayToRaster(arr, lowerLeft, cellSize, value_to_nodata=0)
@@ -452,11 +452,11 @@ def urban25yrQ(Basin, cum_da, impcov):
     if Basin == 'Georgia Region 1':
          return (526 * Power( ( cum_da / 640 ), 0.773 ) )  * ( Power( 10 , ( 0.00539 * impcov ) ) )
 
-def ChannelProtection( Basin, BMP_pts, fld, flowdir_lrg, Cum_da, Cumulative_Impervious, mask):
+def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervious):
         """Flow reduction calcs"""
 
         log("Convert Single BMP Project to Raster...")
-        flowdir = flowdir_lrg*mask
+        # flowdir = ExtractByMask(flowdir_lrg, mask)
         RasBMPpts = GetTempRasterPath("RasBMPpts")
         arcpy.FeatureToRaster_conversion(BMP_pts, fld, RasBMPpts, flowdir)
         thisBMPras = Raster(RasBMPpts)
@@ -477,13 +477,16 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir_lrg, Cum_da, Cumulative_Impe
                 Mod_da = 640 * Power( ( thisBMPras / ( ( (1.36 * 0.875) * Power( rural2yrQ(Basin,Cum_da), 0.323) ) * Power( Cumulative_Impervious, 1.241 ) ) ), ( 1 / 0.554 ) )
 
         else: raise Exception("Unknown basin: " + Basin)
-                
 
         log("Convert to percent reduction in accumulation...")
-        acc_red = ExtractByMask(1 - ( Mod_da / Cum_da), mask)
-        acc_red.save(os.path.join(arcpy.env.scratchFolder,"acc_red_cp"))
+        acc_red = 1 - ( Mod_da / Cum_da)
+        # Mod_da.save(os.path.join(arcpy.env.scratchFolder,"Mod_da_test"))
+        # Cumulative_Impervious.save(os.path.join(arcpy.env.scratchFolder,"CumImp_test"))
+        # Cum_da.save(os.path.join(arcpy.env.scratchFolder,"Cum_da_test"))
+        # acc_red.save(os.path.join(arcpy.env.scratchFolder,"acc_red_cp"))
+        # flowdir.save(os.path.join(arcpy.env.scratchFolder,"flowdir_test"))
         
-        ModCumDa_u = BMP2DA(flowdir, "ModCumDa_asc", mask, acc_red)
+        ModCumDa_u = BMP2DA(flowdir, "ModCumDa_asc", Raster(arcpy.env.mask), acc_red)
 
         log("Convert units...")
         conv = cellSize / 43560
@@ -1953,7 +1956,7 @@ class Baseline(tool):
             for LU in landuses:
                 TSSProd = Raster(os.path.join(arcpy.env.workspace, "q" + LU + pn)) * arcpy.env.mask
                 
-                K = os.path.join(arcpy.env.workspace, "K" + LU[0] + pn)
+                K = os.path.join(arcpy.env.workspace, "K" + LU + pn)
                 
                 TSSLoadOutput = (os.path.join(arcpy.env.workspace, "L" + LU + pn))
                 TSSYield = (os.path.join(arcpy.env.workspace, "Y" +LU + pn))
@@ -1989,7 +1992,7 @@ class Baseline(tool):
                 ConvertGRIDCODEatt(TSSYldvec)
                     
                 if summary_pt_input:
-                    TSSLoadOutput = Raster(os.path.join(arcpy.env.workspace, "L" + LU[0] + pn))
+                    TSSLoadOutput = Raster(os.path.join(arcpy.env.workspace, "L" + LU + pn))
                     Summarize(TSSLoadOutput, summary_pts)        
             
         except:       
@@ -2182,9 +2185,9 @@ class CIP(tool):
             arcpy.RasterToPolygon_conversion(arcpy.env.mask, vectmask, "SIMPLIFY", "Value")
             arcpy.Clip_analysis(bmp_noclip, vectmask, BMPpts)
             
-            Cum_da = Raster(os.path.join(arcpy.env.workspace, "cumda"))
-            flowdir = Raster(os.path.join(arcpy.env.workspace, "flowdir"))
-            Streams_nd = Raster(os.path.join(arcpy.env.workspace, "streams"))
+            Cum_da = ExtractByMask("cumda", arcpy.env.mask) 
+            flowdir = ExtractByMask("flowdir", arcpy.env.mask) 
+            Streams_nd = ExtractByMask("streams", arcpy.env.mask) 
             Stream_Raster = RemoveNulls(Streams_nd)
             Units = flowdir.meanCellWidth
             
@@ -2342,18 +2345,18 @@ class CIP(tool):
             
             log("Clip...")
             TSSLoadOutput = TSSLoadcip * arcpy.env.mask
-            TSSLoadOutput.save(os.path.join(cipWorkspace, "L" + LU[0] + pn))
+            TSSLoadOutput.save(os.path.join(cipWorkspace, "L" + LU + pn))
             
             log("Calculate Yield...")
             CIPTSSYield = TSSLoadcip / Cum_da
-            CIPTSSYield.save(os.path.join(cipWorkspace, "Y" + LU[0] + pn))
+            CIPTSSYield.save(os.path.join(cipWorkspace, "Y" + LU + pn))
             
             log("Clip to streams...")
             # and round
             TSSYield_cl = Int(RoundUp( RoundDown( Streams_nd * CIPTSSYield * 20000 ) / 2 ))
-            TSSYield_cl.save(os.path.join(cipWorkspace, LU[0] + "y2" + pn))
+            TSSYield_cl.save(os.path.join(cipWorkspace, LU + "y2" + pn))
             
-            TSSYldvec = os.path.join(cipWorkspace, LU[0] + "yV" + pn)#
+            TSSYldvec = os.path.join(cipWorkspace, LU + "yV" + pn)#
             log("Vectorize...")
             StreamToFeature(TSSYield_cl, flowdir, TSSYldvec, "NO_SIMPLIFY")
             
@@ -2396,10 +2399,10 @@ class SingleBMP(CIP):
             defEro = parameters[10].value
             Basin = parameters[11].valueAsText
             
-            log("\nCIP run %s started at %s" % (ScenName, time.asctime()))
+            log("\nSingleBMP run started at %s" % (time.asctime()))
             
             OIDfield = arcpy.Describe(bmp_noclip).OIDFieldName
-            pn = GetAlias(bmp_eeff)[:10]
+            pn = GetAlias(bmp_eeff_fld)[:10]
             # hp.SetPIDs(bmp_noclip)
             
             vectmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
@@ -2408,14 +2411,17 @@ class SingleBMP(CIP):
             arcpy.Clip_analysis(bmp_noclip, vectmask, BMPpts)
             wtredBMPs = os.path.join(arcpy.env.scratchFolder, "wtredBMPs")
             
-            Cum_da = Raster(os.path.join(arcpy.env.workspace, "cumda"))
-            flowdir = Raster(os.path.join(arcpy.env.workspace, "flowdir"))
-            Streams_nd = Raster(os.path.join(arcpy.env.workspace, "streams"))
+            Cum_da = ExtractByMask("cumda", arcpy.env.mask) 
+            flowdir = ExtractByMask("flowdir", arcpy.env.mask) 
+            Streams_nd = ExtractByMask("streams", arcpy.env.mask) 
             Stream_Raster = RemoveNulls(Streams_nd)
-            Rural_1yrQ = Raster(os.path.join(arcpy.env.workspace, "UndevQ"))
-            Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake"))
-            pointsrc = Raster(os.path.join(arcpy.env.workspace, "pt" + pn))
-            existingTSSprod = os.path.join(arcpy.env.workspace, "p" + LU + pn)
+            Rural_1yrQ = ExtractByMask("UndevQ", arcpy.env.mask) 
+            Cumulative_Impervious = ExtractByMask("cumimpcovlake", arcpy.env.mask) 
+            try:
+                pointsrc = ExtractByMask("pt" + pn)
+            except:
+                pointsrc = None
+            existingTSSprod = Raster("p" + LU + pn)
             Units = flowdir.meanCellWidth
             
             # existing_params = hp.GetAlias(existing_efficiencies)
@@ -2443,16 +2449,16 @@ class SingleBMP(CIP):
                 
             log("Calculate Urban/Rural ratio...")
     ##        usgs_calcs = Helper.USGSVars(hp.Basin)
-            urbanQcpbas = urbanQcp(CumMod_da, Cumulative_Impervious, Basin)
+            urbanQcpbas = urbanQcp(Cum_da, Cumulative_Impervious, Basin)
             URratio = urbanQcpbas / Rural_1yrQ
             
-            log("Add erosivity to existing %s production..." % p)
+            log("Add erosivity to existing production...")
             TSSP_ero_ext = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster) 
             # arcpy.CopyRaster_management(TSSP_ero_ext, os.path.join(arcpy.env.scratchFolder, "ero") + p[:10].strip())
             
             
             # log("Checking for input BMPs in your area...")    
-            # all = arcpy.GetCount_management(BMPpts)
+            all = arcpy.GetCount_management(BMPpts)
             # if all <= 1:
                 # raise Exception("You must have more than one point to run this tool!")
             
@@ -2474,29 +2480,29 @@ class SingleBMP(CIP):
                 bmp_type = BMProw.getValue(bmp_type_fld)
                 bmp_Ex1yr = float(BMProw.getValue(bmp_Ex1yr_fld))
                 bmp_Prop1yr = float(BMProw.getValue(bmp_Prop1yr_fld))
-                log("  Found bmp type of %s, existing Q1 of %s, and proposed Q1 of %s for PID %s" % (bmp_type, bmp_Ex1yr, bmp_Prop1yr, BMP_FID))
+                log("  Found bmp type of %s, existing Q1 of %s, and proposed Q1 of %s for FID %s" % (bmp_type, bmp_Ex1yr, bmp_Prop1yr, BMP_FID))
                 
                 SinBMPpts = os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp")
-                GetSubset(BMPpts, SinBMPpts, " \"PID\" = %s " % BMP_FID)
+                GetSubset(BMPpts, SinBMPpts, " \"%s\" = %s " % (OIDfield, BMP_FID))
                 
                 SingleBMP = os.path.join(arcpy.env.scratchFolder, "SingleBMP")
-                log("Convert this project to a raster mask...")
-                arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder,SinBMPpts), "PID", SingleBMP, flowdir)
+                log("  Convert this project to a raster mask...")
+                arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder,SinBMPpts), OIDfield, SingleBMP, flowdir)
                 SinBMPmask = Reclassify(SingleBMP, "VALUE", "NoData 0; 0.001 100000 1", "DATA")
-                SinBMPmask.save(os.path.join(arcpy.env.scratchFolder,"SinBMPmask"))
+                SinBMPmask.save(os.path.join(arcpy.env.scratchFolder,"SinBMPmask.tif"))
                 
                 # for p in existing_params:
                 # pn = p[:10].strip()
                 K = os.path.join(arcpy.env.scratchFolder, "K" + pn)
 
-                TSSP_ero_ext = Raster(os.path.join(arcpy.env.scratchFolder, "ero" + pn))
+                # TSSP_ero_ext = Raster(os.path.join(arcpy.env.scratchFolder, "ero" + pn))
                 
                 sum, chanp_red, washoff_red = 0, 0, 0
                 
-                bmp_eeff = float(BMProw.getValue(existing_params[p]))
-                bmp_peff = float(BMProw.getValue(proposed_params[p]))
-                stream_red_per_ft = float(BMProw.getValue(streamreduc_params[p])) 
-                log("  Found existing bmp efficiency of %s, proposed bmp efficiency of %s, and stream reduction of %s for PID %s" % (bmp_eeff, bmp_peff, stream_red_per_ft, BMP_FID))
+                bmp_eeff = float(BMProw.getValue(bmp_eeff_fld))
+                bmp_peff = float(BMProw.getValue(bmp_peff_fld))
+                stream_red_per_ft = float(BMProw.getValue(bmp_strlngth_fld)) 
+                log("  Found existing bmp efficiency of %s, proposed bmp efficiency of %s, and stream reduction of %s for FID %s" % (bmp_eeff, bmp_peff, stream_red_per_ft, BMP_FID))
                 
                 # pointsrc = ""
                 # if os.path.exists(os.path.join(arcpy.env.scratchFolder, "pt" + pn)):
@@ -2522,25 +2528,25 @@ class SingleBMP(CIP):
                         
                         log("   Calculating Channel Protection from this BMP")
                         #~ arcpy.Merge_management ("ChanBMPpts.shp; SinBMPpts.shp", "merge.shp")
-                        ModCumDa, thisBMPras, this_ds = regression.ChannelProtection(hp, SinBMPpts, sys.argv[4])
-                        ModCumDa.save(os.path.join(arcpy.env.scratchFolder,"modcumda"))
-                        this_ds.save(os.path.join(arcpy.env.scratchFolder,"this_ds"))
+                        ModCumDa, thisBMPras, this_ds = ChannelProtection(Basin, SinBMPpts, bmp_Prop1yr_fld, flowdir, Cum_da, Cumulative_Impervious) 
+                        ModCumDa.save(os.path.join(arcpy.env.scratchFolder,"modcumda.tif"))
+                        this_ds.save(os.path.join(arcpy.env.scratchFolder,"this_ds.tif"))
                         
-                        log("Calculate Future Urban/Rural ratio...")
+                        log("  Calculate Future Urban/Rural ratio...")
                         URratio = this_ds / Rural_1yrQ
-                        URratio.save(os.path.join(arcpy.env.scratchFolder,"urratio"))
+                        URratio.save(os.path.join(arcpy.env.scratchFolder,"urratio.tif"))
                         
-                        TSSP_ero = Helper.CalcErosivity(hp, defEro, TSSprod, pointsrc, URratio, Stream_Raster)
-                        TSSP_ero.save(os.path.join(arcpy.env.scratchFolder,"tssp_ero"))
+                        TSSP_ero = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster)
+                        TSSP_ero.save(os.path.join(arcpy.env.scratchFolder,"tssp_ero.tif"))
                         
-                        log("%s reduction..." % p)
+                        log("  %s reduction..." % pn)
                         TSSred = TSSP_ero_ext - TSSP_ero
-                        TSSred.save(os.path.join(arcpy.env.scratchFolder,"tssred"))
+                        TSSred.save(os.path.join(arcpy.env.scratchFolder,"tssred.tif"))
                         
-                        log("Tabulating %s reduction..." % p)
-                        chanp_red = hp.Zonal(TSSred)
+                        log("  Tabulating %s reduction..." % pn)
+                        chanp_red = Zonal(TSSred)
                         
-                        print "    %s Reduction component from Channel protection = %s\n" % (p, chanp_red)
+                        log( "    %s Reduction component from Channel protection = %s\n" % (pn, chanp_red) )
                                 
                     if bmp_peff > bmp_eeff:
                         WQ_benefit = 1
@@ -2548,11 +2554,11 @@ class SingleBMP(CIP):
                         WQ_benefit = 0
                         
                     if not WQ_benefit:
-                        log("   No Water Quality Benefit from this BMP")
+                        log("  No Water Quality Benefit from this BMP")
                     else:
-                        log("   Calculating Water Quality Benefit from this BMP")
+                        log("  Calculating Water Quality Benefit from this BMP")
                         REMBMPpts = os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp")
-                        hp.GetSubset(BMPpts, REMBMPpts, " \"PID\" <> %s AND %s > 0" % (BMP_FID, existing_params[p]))
+                        GetSubset(BMPpts, REMBMPpts, " \"%s\" <> %s AND %s > 0" % (OIDfield, BMP_FID, pn))
                         #~ arcpy.CopyFeatures_management(BMPpts, )
                         #~ rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp"))
                         #~ row = rows.next()
@@ -2563,34 +2569,34 @@ class SingleBMP(CIP):
                         #~ del row, rows
                         
                         #~ log("Adding erosivity to %s production..." % p)
-                        data_ero = Helper.CalcErosivity(hp, defEro, TSSprod, pointsrc, URratio, Stream_Raster)
+                        data_ero = CalcErosivity(defEro, TSSprod, pointsrc, URratio, Stream_Raster)
                         
                         REMBMPs = (os.path.join(arcpy.env.scratchFolder, "REMBMPs"))
-                        log("Convert all other BMPs to Raster...")
-                        arcpy.FeatureToRaster_conversion(REMBMPpts, existing_params[p], REMBMPs, flowdir)
-                        BMPs = hp.RemoveNulls(REMBMPs)
-                        wtredBMPs =  ExtractByMask(BMPs / 100.0,  hp.Mask)
+                        log("    Convert all other BMPs to Raster...")
+                        arcpy.FeatureToRaster_conversion(REMBMPpts, pn, REMBMPs, flowdir)
+                        BMPs = RemoveNulls(REMBMPs)
+                        wtredBMPs =  ExtractByMask(BMPs / 100.0,  arcpy.env.mask)
                        
                          
                         arcpy.CopyRaster_management(data_ero, os.path.join(arcpy.env.scratchFolder,"data_ero"))
                         data_ero1 = Raster(os.path.join(arcpy.env.scratchFolder,"data_ero"))
                         counter +=1
-                        TSSLoad = hp.BMP2DA(flowdir, pn+str(counter), data_ero1, wtredBMPs)
+                        TSSLoad = BMP2DA(flowdir, pn+str(counter), data_ero1, wtredBMPs)
                         
                                           
-                        log("%s reduction..." % p)
+                        log("    %s reduction..." % pn)
                         TSSLoadpt = TSSLoad * (bmp_peff - bmp_eeff) * SinBMPmask / 100
                         
-                        log("Tabulating %s reduction..." % p)
-                        washoff_red = hp.Zonal(TSSLoadpt)                    
-                        print "    %s Reduction component from Washoff benefit = %s\n" % (p, washoff_red)
+                        log("    Tabulating %s reduction..." % pn)
+                        washoff_red = Zonal(TSSLoadpt)                    
+                        log( "    %s Reduction component from Washoff benefit = %s\n" % (pn, washoff_red) )
                         WQ = washoff_red
                         
                     sum = chanp_red + washoff_red
-                    print TSSprod, sum
+                    # print TSSprod, sum
                 
-                    log("Writing attributes")
-                    hp.SetAtt(BMP_FID, hp.ShortName(p) + "red" + LU[0], sum, bmp_noclip)
+                    log("  Writing attributes")
+                    SetAtt(BMP_FID, ShortName(pn) + "red" + LU, sum, bmp_noclip)
                 
                 if bmp_type.lower() in ['stream restoration']: 
                     # Calculate in-stream reduction ################################
@@ -2599,15 +2605,15 @@ class SingleBMP(CIP):
                     arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp"), strlngth, os.path.join(arcpy.env.scratchFolder, "len"), flowdir)
                     slengths = Float(Raster(os.path.join(arcpy.env.scratchFolder, "len")))
                       
-                    thisstream = hp.AttExtract(slengths, flowdir, "thisstream", Stream_Raster, Units)
+                    thisstream = AttExtract(slengths, flowdir, "thisstream", Stream_Raster, Units)
                     
                     log("Make mask...")
                     ThisBMPmask = Reclassify(thisstream, "Value", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
-                    ThisBMPmask.save(os.path.join(arcpy.env.scratchFolder,"ThisBMPmask"))
+                    ThisBMPmask.save(os.path.join(arcpy.env.scratchFolder,"ThisBMPmask.tif"))
                     
                     log("Calculate reduction...")
                     streamprod = (bmp_peff/ 100) * Raster(TSSprod) * ThisBMPmask * Power(URratio, 1.5)
-                    streamprod.save(os.path.join(arcpy.env.scratchFolder,"streamprod"))
+                    streamprod.save(os.path.join(arcpy.env.scratchFolder,"streamprod.tif"))
                     
                     log("Reclassify flowdirection to find straight paths...")
                     Flowdirs = Reclassify(flowdir, "VALUE", "1 1;2 0;4 1;8 0;16 1;32 0;64 1;128 0", "DATA")
@@ -2620,16 +2626,16 @@ class SingleBMP(CIP):
                     
                     log("Calculate length")
                     thislen = Dist * ThisBMPmask
-                    dist_red = hp.Zonal(thislen) * stream_red_per_ft
-                    print "stream_red_per_ft: %s, dist_red: %s" % (stream_red_per_ft, dist_red)
+                    dist_red = Zonal(thislen) * stream_red_per_ft
+                    # log( "stream_red_per_ft: %s, dist_red: %s" % (stream_red_per_ft, dist_red) )
                     
                     log("Summarize Stream reduction from point...")
-                    stream_red = hp.Zonal(streamprod) + dist_red
+                    stream_red = Zonal(streamprod) + dist_red
                     
-                    print "Stream reduction", stream_red
+                    log( "  Stream reduction", stream_red )
                     
                     log("Writing attributes")
-                    hp.SetAtt(BMP_FID, hp.ShortName(p) + "red" + LU[0], stream_red, bmp_noclip)
+                    SetAtt(BMP_FID, ShortName(pn) + "red" + LU, stream_red, bmp_noclip)
             
                 count += 1   
         
