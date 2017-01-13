@@ -43,7 +43,10 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
         output = TSSprod 
     else: 
         output = (( Streams_rc * Power( URratio, 1.5 ) + BooleanNot( Streams_rc)) * TSSprod  ) + pointSrcRaster
-    return output
+    output.save(os.path.join(arcpy.env.scratchFolder,"output"))
+    cleanoutput = RemoveNulls(output)
+    cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"clnoutput"))
+    return cleanoutput 
     
 def log(message, err=False):
     ''' Logging function that write to the log file, and ArcGIS geoprocessor messages'''
@@ -189,17 +192,17 @@ def Step():
     return self.step
     
 def Zonal(raster, stat='SUM'):
-    LoadTable = os.path.join(self.arcpy.env.scratchFolder, 'load.dbf')
+    LoadTable = os.path.join(arcpy.env.scratchFolder, 'load.dbf')
     
-    outZSaT  = ZonalStatisticsAsTable(self.Mask, "Value", raster, LoadTable, "DATA")
+    outZSaT  = ZonalStatisticsAsTable(arcpy.env.mask, "Value", raster, LoadTable, "DATA")
     rows = arcpy.UpdateCursor(LoadTable)
     computation = rows.next().getValue(stat)
     
     return computation
     
-def SetAtt(PID, att, val, lyr, alias=None):
+def SetAtt(OID, att, val, lyr, alias=None):
     # log("\t\tPID: %s\n\t\tAttribute: %s\n\t\tValue: %s\n\t\tLayer: %s" % (PID, att, val, lyr) )
-    
+    OIDfield = arcpy.Describe(lyr).OIDFieldName
     if not alias: alias = att
     
     if not att in ListofFields(lyr):
@@ -209,7 +212,7 @@ def SetAtt(PID, att, val, lyr, alias=None):
     rows = arcpy.UpdateCursor(lyr)
     
     for row in rows:
-        if row.getValue('PID') == PID:
+        if row.getValue(OIDfield) == OID:
             row.setValue(att, val)
             rows.updateRow(row)
         
@@ -296,7 +299,11 @@ def RemoveNulls(raster):
     
 def GetSubset(input, output, query):
     arcpy.MakeFeatureLayer_management(input, 'subset')
-    arcpy.SelectLayerByAttribute_management('subset', "NEW_SELECTION", query)
+    try:
+        arcpy.SelectLayerByAttribute_management('subset', "NEW_SELECTION", query)
+    except Exception as err:
+        log('Bad query: "%s"' % query)
+        raise err
     arcpy.CopyFeatures_management('subset', output)
     count = int(arcpy.GetCount_management(output).getOutput(0))
     log("  %s, found %s" % (query, count))
@@ -500,8 +507,12 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
 
 class tool(object):
     def check(self):
-        if not arcpy.env.workspace or 'gdb' not in arcpy.env.workspace:
-            raise Exception("Workspace is not set in geoprocessing env settrings, or is not a fileGDB. Fix and rerun")
+        if not arcpy.env.workspace:
+            raise Exception("Workspace is not set in geoprocessing env settrings. Fix and rerun")
+        if not 'gdb' in arcpy.env.workspace:
+            raise Exception("Workspace is not a fileGDB. Fix and rerun")
+        if not arcpy.env.mask:
+            raise Exception("Mask is not set in geoprocessing env settrings. Fix and rerun")
         log("\n%s run started at %s from %s using workspace %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace))
         
 class Toolbox(object):
@@ -1548,7 +1559,7 @@ class ProdTrans(tool):
             
             log("Calculate distance grid...")
             Dist = (Flowdirs + Flowdird * 1.4142)* Units
-            Dist.save(os.path.join(arcpy.env.scratchFolder, "dist.tif"))
+            Dist.save(os.path.join(arcpy.env.scratchFolder, "dist"))
 
             # params = {}
             # exec(sys.argv[21])
@@ -1584,22 +1595,22 @@ class ProdTrans(tool):
             # pn = param[:10].strip()
             log( '  Parameter: ' + pn)
             arcpy.PolygonToRaster_conversion("LULyr", LU_fld, os.path.join(arcpy.env.scratchFolder,"LUacres.tif"), "MAXIMUM_AREA", None, Units)
-            LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres.tif")) * float(Units*Units/43560)
+            LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")) * float(Units*Units/43560)
             # hp.saveRasterOutput(lu2temp, LU[2] + pn) ######################
             
             log("Create roughness grid")
             arcpy.PolygonToRaster_conversion("LULyr", 'Lut.csv.MANNINGSN', os.path.join(arcpy.env.scratchFolder,"MANNINGSN.tif"), "MAXIMUM_AREA", None, Units)
             
             log("Calculate overland flow velocity")
-            MANNINGSN = Raster(os.path.join(arcpy.env.scratchFolder,"MANNINGSN.tif"))
+            MANNINGSN = Raster(os.path.join(arcpy.env.scratchFolder,"MANNINGSN"))
             UplandVel = MANNINGSN * Power(slope, 0.5 )
-            UplandVel.save(os.path.join(arcpy.env.scratchFolder, "uplandvel.tif"))
+            UplandVel.save(os.path.join(arcpy.env.scratchFolder, "uplandvel"))
             
             log("Calculate overland flow detention time")
             Detovrlndt = Dist / UplandVel
-            Detovrlndt.save(os.path.join(arcpy.env.scratchFolder, "detovrlndt.tif"))
+            Detovrlndt.save(os.path.join(arcpy.env.scratchFolder, "detovrlndt"))
             Detovrlnd = RemoveNulls(Detovrlndt)
-            Detovrlnd.save(os.path.join(arcpy.env.scratchFolder, "detovrlnd.tif"))
+            Detovrlnd.save(os.path.join(arcpy.env.scratchFolder, "detovrlnd"))
             
             log("Calculate Hydraulic geometry...")
             BankHt = Power(cumda, BankHydExp) * BankHydCoe
@@ -1617,9 +1628,9 @@ class ProdTrans(tool):
                 ras = Raster(f)
                 AttributeRaster = Float(ras) * arcpy.env.mask
                 
-                # AttributeRaster.save(os.path.join(arcpy.env.scratchFolder, "f" + field +".tif"))
-                # flowdir.save(os.path.join(arcpy.env.scratchFolder, "flowdir.tif"))
-                # streams.save(os.path.join(arcpy.env.scratchFolder, "streams.tif"))
+                # AttributeRaster.save(os.path.join(arcpy.env.scratchFolder, "f" + field +""))
+                # flowdir.save(os.path.join(arcpy.env.scratchFolder, "flowdir"))
+                # streams.save(os.path.join(arcpy.env.scratchFolder, "streams"))
                 
                 if field == RB_Len or field == LB_Len:
                     log("\tExtract %s attribute with cellsize %s..." % (field, Units))
@@ -1629,7 +1640,7 @@ class ProdTrans(tool):
                     #~ rrange = RemapRange([[-10000000000,0,0], [0.00001,1000000000000,1]]) # this does not work 
                     reclass = Reclassify(extract, "Value", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
                     #~ reclass = RemoveNulls(reclass_step1)
-                    reclass.save(os.path.join(arcpy.env.scratchFolder, field + "rc.tif"))
+                    reclass.save(os.path.join(arcpy.env.scratchFolder, field + "rc"))
                 
                 else: 
                     log("\tExtract %s attribute..." % field)
@@ -1637,36 +1648,36 @@ class ProdTrans(tool):
             
             
             log("Calculate Right bank stream production...")
-            RBL = Raster(os.path.join(arcpy.env.scratchFolder, RB_Len+"rc.tif"))
-            RBHT = Raster(os.path.join(arcpy.env.scratchFolder, RB_Hgt+"e.tif"))
-            RBE = Raster(os.path.join(arcpy.env.scratchFolder, RB_Ero+"e.tif"))
+            RBL = Raster(os.path.join(arcpy.env.scratchFolder, RB_Len+"rc"))
+            RBHT = Raster(os.path.join(arcpy.env.scratchFolder, RB_Hgt+"e"))
+            RBE = Raster(os.path.join(arcpy.env.scratchFolder, RB_Ero+"e"))
             rt = RBL * streams * defProd * RBHT * RBE / 100 
-            rt.save(os.path.join(arcpy.env.scratchFolder, "rt"+pn+".tif"))
+            rt.save(os.path.join(arcpy.env.scratchFolder, "rt"+pn+""))
             RB = RemoveNulls(rt) 
-            RB.save(os.path.join(arcpy.env.scratchFolder, "rb"+pn+".tif"))
+            RB.save(os.path.join(arcpy.env.scratchFolder, "rb"+pn+""))
 
             
             log("Calculate Left bank stream production...")
-            LBL = Raster(os.path.join(arcpy.env.scratchFolder,LB_Len+"rc.tif"))
-            LBHT = Raster(os.path.join(arcpy.env.scratchFolder, LB_Hgt+"e.tif"))
-            LBE = Raster(os.path.join(arcpy.env.scratchFolder, LB_Ero+"e.tif"))
+            LBL = Raster(os.path.join(arcpy.env.scratchFolder,LB_Len+"rc"))
+            LBHT = Raster(os.path.join(arcpy.env.scratchFolder, LB_Hgt+"e"))
+            LBE = Raster(os.path.join(arcpy.env.scratchFolder, LB_Ero+"e"))
             lt = LBL * streams * defProd * LBHT* LBE/ 100
-            lt.save(os.path.join(arcpy.env.scratchFolder, "lt"+pn+".tif"))
+            lt.save(os.path.join(arcpy.env.scratchFolder, "lt"+pn+""))
             LB = RemoveNulls(lt) 
-            LB.save(os.path.join(arcpy.env.scratchFolder, "lb"+pn+".tif"))
+            LB.save(os.path.join(arcpy.env.scratchFolder, "lb"+pn+""))
             
             log("Calculate remaining stream production...")
             B = streams * BankHt * defProd * defEro / 100
-            B.save(os.path.join(arcpy.env.scratchFolder, "B"+pn+".tif"))
+            B.save(os.path.join(arcpy.env.scratchFolder, "B"+pn+""))
             
             log("Combine Stream production...")
             APPF = ( BooleanNot(RB) * B + RB ) + ( BooleanNot(LB) * B + LB )
-            APPF.save(os.path.join(arcpy.env.scratchFolder, "appf.tif"))
+            APPF.save(os.path.join(arcpy.env.scratchFolder, "appf"))
             
             # lakes = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "lakes"))
             log("Calculate APPS production...")
             APPS = APPF * Dist * BooleanNot(lakes)
-            APPS.save(os.path.join(arcpy.env.scratchFolder, "apps.tif"))
+            APPS.save(os.path.join(arcpy.env.scratchFolder, "apps"))
             
             log("Combining washoff rate and stream production...")
             PStream = APPS * BooleanNot(Impervious_Cover)
@@ -1688,10 +1699,10 @@ class ProdTrans(tool):
             log("Determine stream roughness")
             n_channele1 = Raster(os.path.join(arcpy.env.scratchFolder, n_channel+ "e.tif") )
             n_channele = RemoveNulls(n_channele1)
-            n_channele.save(os.path.join(arcpy.env.scratchFolder, "n_channele.tif"))
+            n_channele.save(os.path.join(arcpy.env.scratchFolder, "n_channele"))
             
             nstream = streams * BooleanNot(n_channele)* n_default + n_channele
-            nstream.save(os.path.join(arcpy.env.scratchFolder, "nstream.tif"))
+            nstream.save(os.path.join(arcpy.env.scratchFolder, "nstream"))
 
             
             log("Calculate Hydraulic Radius")
@@ -1712,7 +1723,7 @@ class ProdTrans(tool):
             #~ dataclip = streams * totalgt
             
             dataclip = streams * CellStatistics([rb_Lenrc, lb_Lenrc], "MAXIMUM", "DATA")
-            dataclip.save(os.path.join(arcpy.env.scratchFolder, "dataclip.tif"))
+            dataclip.save(os.path.join(arcpy.env.scratchFolder, "dataclip"))
             
             # fill in bank width where values are missing along stream
             widthdef = 20.9 * Power ( ( Float(cumda) / 640 ), 0.376 )
@@ -1720,7 +1731,7 @@ class ProdTrans(tool):
             widthtemp = dataclip * BankWidthe
             widthtemp.save(os.path.join(arcpy.env.scratchFolder, "widthtemp")) 
             width = streams * BooleanNot(widthtemp) * widthdef + widthtemp
-            width.save(os.path.join(arcpy.env.scratchFolder, "width.tif"))
+            width.save(os.path.join(arcpy.env.scratchFolder, "width"))
 
             
             # fill in bank depth where values are missing along stream
@@ -1728,30 +1739,30 @@ class ProdTrans(tool):
             BankDepthe = Raster(os.path.join(arcpy.env.scratchFolder, BankDepth+ "e.tif") )
             depthtemp = dataclip * BankDepthe
             depth = streams * BooleanNot(depthtemp) * depthdef + depthtemp
-            depth.save(os.path.join(arcpy.env.scratchFolder, "depth.tif"))
+            depth.save(os.path.join(arcpy.env.scratchFolder, "depth"))
 
             
             hydradiusC = (Float(width) * Float(depth)) / (Float(width) + 2 * Float(depth))
             hydradiusC.save(os.path.join(arcpy.env.scratchFolder, "hydradiusC"))
             hydradius = RemoveNulls(hydradiusC)
-            hydradius.save(os.path.join(arcpy.env.scratchFolder, "hydradius.tif"))
+            hydradius.save(os.path.join(arcpy.env.scratchFolder, "hydradius"))
             
             log("Calculate normal stream velocity")
             tempvel = Power (hydradius, 0.6667) *  Power (Float(slope), 0.5) / nstream
-            tempvel.save(os.path.join(arcpy.env.scratchFolder, "tempvel.tif"))
+            tempvel.save(os.path.join(arcpy.env.scratchFolder, "tempvel"))
             
             streamvel = RemoveNulls(tempvel)
-            streamvel.save(os.path.join(arcpy.env.scratchFolder, "streamvel.tif"))
+            streamvel.save(os.path.join(arcpy.env.scratchFolder, "streamvel"))
                 
             log("Calculate in-stream flow detention time")
             Detstreamt = Dist / streamvel
-            Detstreamt.save(os.path.join(arcpy.env.scratchFolder, "detstreamt.tif"))
+            Detstreamt.save(os.path.join(arcpy.env.scratchFolder, "detstreamt"))
             Detstream = RemoveNulls(Detstreamt)
-            Detstream.save(os.path.join(arcpy.env.scratchFolder, "detstream.tif"))
+            Detstream.save(os.path.join(arcpy.env.scratchFolder, "detstream"))
             
             log("Calculate total flow detention time")
             Dettime =  Detstream + Detovrlnd * BooleanNot (Detstream)  
-            Dettime.save(os.path.join(arcpy.env.scratchFolder, "dettime.tif"))    
+            Dettime.save(os.path.join(arcpy.env.scratchFolder, "dettime"))    
                     
             ##    usgs_calcs = Helper.USGSVars(hp.Basin)
             uQcp = urbanQcp(cumda, Cumulative_Impervious, Basin)
@@ -1968,7 +1979,7 @@ class Baseline(tool):
                 log("Combine decay function with BMP reduction")
                 bmptemp = RemoveNulls(BMPs)
                 weightred = 1 - ( K * ( 1 - (bmptemp / 100.0 ) ) ) * arcpy.env.mask
-                weightred.save(os.path.join(arcpy.env.scratchFolder,"weightred.tif"))
+                weightred.save(os.path.join(arcpy.env.scratchFolder,"weightred"))
                 
                 log("Calculate Reduction...")
                 Existingtss = BMP2DA(flowdir, "bmp2da.tif", TSSProd, weightred)
@@ -2228,7 +2239,7 @@ class CIP(tool):
             if CP_found > 0:
                 Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake") )
                 
-                CumMod_da, RasBMPpts2, throwout = ChannelProtection(Basin, ChanBMPpts, bmp_Prop1yr, flowdir, Cum_da, Cumulative_Impervious, arcpy.env.mask) 
+                CumMod_da, RasBMPpts2, throwout = ChannelProtection(Basin, ChanBMPpts, bmp_Prop1yr, flowdir, Cum_da, Cumulative_Impervious) 
                 
                 uQcp = urbanQcp(CumMod_da, Cumulative_Impervious, Basin)
                 
@@ -2314,7 +2325,7 @@ class CIP(tool):
             if existing_found > 0: 
                 log("Convert Existing Efficiency to Raster...")
                 arcpy.FeatureToRaster_conversion(ExistingBMPs, bmp_eeff, os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.tif"), flowdir)
-                ExistingBMPs = Raster(os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.tif"))
+                ExistingBMPs = Raster(os.path.join(arcpy.env.scratchFolder, "ExistingBMPs"))
                 ExistingBrc = RemoveNulls(ExistingBMPs)
                 
             if cipbmps_found > 0:
@@ -2434,7 +2445,7 @@ class SingleBMP(CIP):
             
             # exec(hp.models['ProdTrans']['input'][-1])
             
-            log("Preparing input BMPs...")    
+            # log("Preparing input BMPs...")    
             
             # for p in existing_params: # If we switch the loops below to be param first point second, then we could include this stuff in the param loop. Right now we don't want to run this calc for every point, hence this bit of code duplication outide the main loops
                             
@@ -2454,6 +2465,7 @@ class SingleBMP(CIP):
             
             log("Add erosivity to existing production...")
             TSSP_ero_ext = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster) 
+            TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder,"TSSPeroExt.tif"))
             # arcpy.CopyRaster_management(TSSP_ero_ext, os.path.join(arcpy.env.scratchFolder, "ero") + p[:10].strip())
             
             
@@ -2489,7 +2501,7 @@ class SingleBMP(CIP):
                 log("  Convert this project to a raster mask...")
                 arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder,SinBMPpts), OIDfield, SingleBMP, flowdir)
                 SinBMPmask = Reclassify(SingleBMP, "VALUE", "NoData 0; 0.001 100000 1", "DATA")
-                SinBMPmask.save(os.path.join(arcpy.env.scratchFolder,"SinBMPmask.tif"))
+                SinBMPmask.save(os.path.join(arcpy.env.scratchFolder,"SinBMPmask"))
                 
                 # for p in existing_params:
                 # pn = p[:10].strip()
@@ -2529,19 +2541,19 @@ class SingleBMP(CIP):
                         log("   Calculating Channel Protection from this BMP")
                         #~ arcpy.Merge_management ("ChanBMPpts.shp; SinBMPpts.shp", "merge.shp")
                         ModCumDa, thisBMPras, this_ds = ChannelProtection(Basin, SinBMPpts, bmp_Prop1yr_fld, flowdir, Cum_da, Cumulative_Impervious) 
-                        ModCumDa.save(os.path.join(arcpy.env.scratchFolder,"modcumda.tif"))
-                        this_ds.save(os.path.join(arcpy.env.scratchFolder,"this_ds.tif"))
+                        # ModCumDa.save(os.path.join(arcpy.env.scratchFolder,"modcumda"))
+                        this_ds.save(os.path.join(arcpy.env.scratchFolder,"this_ds"))
                         
                         log("  Calculate Future Urban/Rural ratio...")
                         URratio = this_ds / Rural_1yrQ
-                        URratio.save(os.path.join(arcpy.env.scratchFolder,"urratio.tif"))
+                        URratio.save(os.path.join(arcpy.env.scratchFolder,"urratio"))
                         
                         TSSP_ero = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster)
-                        TSSP_ero.save(os.path.join(arcpy.env.scratchFolder,"tssp_ero.tif"))
+                        # TSSP_ero.save(os.path.join(arcpy.env.scratchFolder,"tssp_ero"))
                         
                         log("  %s reduction..." % pn)
                         TSSred = TSSP_ero_ext - TSSP_ero
-                        TSSred.save(os.path.join(arcpy.env.scratchFolder,"tssred.tif"))
+                        # TSSred.save(os.path.join(arcpy.env.scratchFolder,"tssred.tif"))
                         
                         log("  Tabulating %s reduction..." % pn)
                         chanp_red = Zonal(TSSred)
@@ -2558,7 +2570,7 @@ class SingleBMP(CIP):
                     else:
                         log("  Calculating Water Quality Benefit from this BMP")
                         REMBMPpts = os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp")
-                        GetSubset(BMPpts, REMBMPpts, " \"%s\" <> %s AND %s > 0" % (OIDfield, BMP_FID, pn))
+                        GetSubset(BMPpts, REMBMPpts, " \"%s\" <> %s AND %s > 0" % (OIDfield, BMP_FID, bmp_eeff_fld))
                         #~ arcpy.CopyFeatures_management(BMPpts, )
                         #~ rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp"))
                         #~ row = rows.next()
@@ -2568,24 +2580,20 @@ class SingleBMP(CIP):
                             #~ row = rows.next()
                         #~ del row, rows
                         
-                        #~ log("Adding erosivity to %s production..." % p)
-                        data_ero = CalcErosivity(defEro, TSSprod, pointsrc, URratio, Stream_Raster)
-                        
+                        log("   Adding erosivity to %s production..." % pn)
                         REMBMPs = (os.path.join(arcpy.env.scratchFolder, "REMBMPs"))
                         log("    Convert all other BMPs to Raster...")
-                        arcpy.FeatureToRaster_conversion(REMBMPpts, pn, REMBMPs, flowdir)
+                        arcpy.FeatureToRaster_conversion(REMBMPpts, bmp_eeff_fld, REMBMPs, flowdir)
                         BMPs = RemoveNulls(REMBMPs)
                         wtredBMPs =  ExtractByMask(BMPs / 100.0,  arcpy.env.mask)
-                       
+                        wtredBMPs.save( os.path.join(arcpy.env.scratchFolder,"wtredBMPs"))
                          
-                        arcpy.CopyRaster_management(data_ero, os.path.join(arcpy.env.scratchFolder,"data_ero"))
-                        data_ero1 = Raster(os.path.join(arcpy.env.scratchFolder,"data_ero"))
                         counter +=1
-                        TSSLoad = BMP2DA(flowdir, pn+str(counter), data_ero1, wtredBMPs)
-                        
+                        TSSLoad = BMP2DA(flowdir, pn+str(counter), TSSP_ero_ext, wtredBMPs)
                                           
                         log("    %s reduction..." % pn)
                         TSSLoadpt = TSSLoad * (bmp_peff - bmp_eeff) * SinBMPmask / 100
+                        TSSLoadpt.save( os.path.join(arcpy.env.scratchFolder,"TSSLoadpt"))
                         
                         log("    Tabulating %s reduction..." % pn)
                         washoff_red = Zonal(TSSLoadpt)                    
@@ -2596,7 +2604,7 @@ class SingleBMP(CIP):
                     # print TSSprod, sum
                 
                     log("  Writing attributes")
-                    SetAtt(BMP_FID, ShortName(pn) + "red" + LU, sum, bmp_noclip)
+                    SetAtt(BMP_FID, pn[:4] + "red" + LU, sum, bmp_noclip)
                 
                 if bmp_type.lower() in ['stream restoration']: 
                     # Calculate in-stream reduction ################################
@@ -2609,11 +2617,11 @@ class SingleBMP(CIP):
                     
                     log("Make mask...")
                     ThisBMPmask = Reclassify(thisstream, "Value", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
-                    ThisBMPmask.save(os.path.join(arcpy.env.scratchFolder,"ThisBMPmask.tif"))
+                    ThisBMPmask.save(os.path.join(arcpy.env.scratchFolder,"ThisBMPmask"))
                     
                     log("Calculate reduction...")
-                    streamprod = (bmp_peff/ 100) * Raster(TSSprod) * ThisBMPmask * Power(URratio, 1.5)
-                    streamprod.save(os.path.join(arcpy.env.scratchFolder,"streamprod.tif"))
+                    streamprod = (bmp_peff/ 100) * Raster(existingTSSprod) * ThisBMPmask * Power(URratio, 1.5)
+                    streamprod.save(os.path.join(arcpy.env.scratchFolder,"streamprod"))
                     
                     log("Reclassify flowdirection to find straight paths...")
                     Flowdirs = Reclassify(flowdir, "VALUE", "1 1;2 0;4 1;8 0;16 1;32 0;64 1;128 0", "DATA")
@@ -2635,7 +2643,7 @@ class SingleBMP(CIP):
                     log( "  Stream reduction", stream_red )
                     
                     log("Writing attributes")
-                    SetAtt(BMP_FID, ShortName(pn) + "red" + LU, stream_red, bmp_noclip)
+                    SetAtt(BMP_FID, pn[:4] + "red" + LU, stream_red, bmp_noclip)
             
                 count += 1   
         
