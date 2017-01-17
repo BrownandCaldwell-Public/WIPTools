@@ -26,7 +26,8 @@ import sys, os, time, traceback
 import numpy
 
 logfname   = __file__+".log"
-    
+
+#<details>    
 def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
     
     if type(pointSrcRaster) == Raster:
@@ -43,9 +44,9 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
         output = TSSprod 
     else: 
         output = (( Streams_rc * Power( URratio, 1.5 ) + BooleanNot( Streams_rc)) * TSSprod  ) + pointSrcRaster
-    output.save(os.path.join(arcpy.env.scratchFolder,"output"))
+    # output.save(os.path.join(arcpy.env.scratchFolder,"output"))
     cleanoutput = RemoveNulls(output)
-    cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"clnoutput"))
+    # cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"clnoutput"))
     return cleanoutput 
     
 def log(message, err=False):
@@ -487,10 +488,10 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
 
         log("Convert to percent reduction in accumulation...")
         acc_red = 1 - ( Mod_da / Cum_da)
-        # Mod_da.save(os.path.join(arcpy.env.scratchFolder,"Mod_da_test"))
+        Mod_da.save(os.path.join(arcpy.env.scratchFolder,"Mod_da_test"))
         # Cumulative_Impervious.save(os.path.join(arcpy.env.scratchFolder,"CumImp_test"))
-        # Cum_da.save(os.path.join(arcpy.env.scratchFolder,"Cum_da_test"))
-        # acc_red.save(os.path.join(arcpy.env.scratchFolder,"acc_red_cp"))
+        Cum_da.save(os.path.join(arcpy.env.scratchFolder,"Cum_da_test"))
+        acc_red.save(os.path.join(arcpy.env.scratchFolder,"acc_red_cp"))
         # flowdir.save(os.path.join(arcpy.env.scratchFolder,"flowdir_test"))
         
         ModCumDa_u = BMP2DA(flowdir, "ModCumDa_asc", Raster(arcpy.env.mask), acc_red)
@@ -503,7 +504,7 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
         uQcp = urbanQcp(ModCumDa, Cumulative_Impervious, Basin)
 
         return ModCumDa, thisBMPras, uQcp
-
+#</details> 
 
 class tool(object):
     def check(self):
@@ -2324,7 +2325,7 @@ class CIP(tool):
             # Get and combine all the efficiencies used
             if existing_found > 0: 
                 log("Convert Existing Efficiency to Raster...")
-                arcpy.FeatureToRaster_conversion(ExistingBMPs, bmp_eeff, os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.tif"), flowdir)
+                arcpy.FeatureToRaster_conversion(ExistingBMPs, bmp_eeff, os.path.join(arcpy.env.scratchFolder, "ExistingBMPs"), flowdir)
                 ExistingBMPs = Raster(os.path.join(arcpy.env.scratchFolder, "ExistingBMPs"))
                 ExistingBrc = RemoveNulls(ExistingBMPs)
                 
