@@ -44,9 +44,9 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
         output = TSSprod 
     else: 
         output = (( Streams_rc * Power( URratio, 1.5 ) + BooleanNot( Streams_rc)) * TSSprod  ) + pointSrcRaster
-    # output.save(os.path.join(arcpy.env.scratchFolder,"output"))
+    output.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_out"))
     cleanoutput = RemoveNulls(output)
-    # cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"clnoutput"))
+    cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_nul"))
     return cleanoutput 
     
 def log(message, err=False):
@@ -257,10 +257,10 @@ def GetAlias(input):
     return parameter_dict
     
 def GetTempRasterPath(outputname):
-    newname = os.path.join(arcpy.env.scratchFolder, outputname+".tif")
+    newname = os.path.join(arcpy.env.scratchFolder, outputname)
     i = 1
     while os.path.exists(newname):
-        newname = os.path.join(arcpy.env.scratchFolder, outputname+str(i)+".tif")
+        newname = os.path.join(arcpy.env.scratchFolder, outputname+str(i))
         i+=1
     return newname
     
@@ -490,14 +490,14 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
         acc_red = 1 - ( Mod_da / Cum_da)
         Mod_da.save(os.path.join(arcpy.env.scratchFolder,"Mod_da_test"))
         # Cumulative_Impervious.save(os.path.join(arcpy.env.scratchFolder,"CumImp_test"))
-        Cum_da.save(os.path.join(arcpy.env.scratchFolder,"Cum_da_test"))
+        # Cum_da.save(os.path.join(arcpy.env.scratchFolder,"Cum_da_test"))
         acc_red.save(os.path.join(arcpy.env.scratchFolder,"acc_red_cp"))
         # flowdir.save(os.path.join(arcpy.env.scratchFolder,"flowdir_test"))
         
         ModCumDa_u = BMP2DA(flowdir, "ModCumDa_asc", Raster(arcpy.env.mask), acc_red)
 
         log("Convert units...")
-        conv = cellSize / 43560
+        conv = (cellSize*cellSize) / 43560
         ModCumDa = ModCumDa_u * conv
     
         log("Calculating urbanQcp...")
@@ -2240,9 +2240,9 @@ class CIP(tool):
             if CP_found > 0:
                 Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake") )
                 
-                CumMod_da, RasBMPpts2, throwout = ChannelProtection(Basin, ChanBMPpts, bmp_Prop1yr, flowdir, Cum_da, Cumulative_Impervious) 
+                CumMod_da, RasBMPpts2, uQcp = ChannelProtection(Basin, ChanBMPpts, bmp_Prop1yr, flowdir, Cum_da, Cumulative_Impervious) 
                 
-                uQcp = urbanQcp(CumMod_da, Cumulative_Impervious, Basin)
+                # uQcp = urbanQcp(CumMod_da, Cumulative_Impervious, Basin)
                 
                 log("Calculate Urban/Rural ratio...")
                 Rural_1yrQ = Raster(os.path.join(arcpy.env.workspace, "UndevQ"))
