@@ -2485,7 +2485,7 @@ class SingleBMP(CIP):
                 
                 # print "%s\n" % (75*'-')
                 # print BMPpts
-                BMP_FID = BMProw.getValue(OIDfield) 
+                BMP_FID = BMProw.getValue("FID") 
                 
                 log("  Processing point %s of %s..." % (count, all)) 
                 # print "   %s BMPID: %s\n" % (BMPpts, BMP_FID)
@@ -2496,11 +2496,11 @@ class SingleBMP(CIP):
                 log("  Found bmp type of %s, existing Q1 of %s, and proposed Q1 of %s for FID %s" % (bmp_type, bmp_Ex1yr, bmp_Prop1yr, BMP_FID))
                 
                 SinBMPpts = os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp")
-                GetSubset(BMPpts, SinBMPpts, " \"%s\" = %s " % (OIDfield, BMP_FID))
+                GetSubset(BMPpts, SinBMPpts, " \"%s\" = %s " % ("FID", BMP_FID))
                 
                 SingleBMP = os.path.join(arcpy.env.scratchFolder, "SingleBMP")
                 log("  Convert this project to a raster mask...")
-                arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder,SinBMPpts), OIDfield, SingleBMP, flowdir)
+                arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder,SinBMPpts), "FID", SingleBMP, flowdir)
                 SinBMPmask = Reclassify(SingleBMP, "VALUE", "NoData 0; 0.001 100000 1", "DATA")
                 SinBMPmask.save(os.path.join(arcpy.env.scratchFolder,"SinBMPmask"))
                 
@@ -2571,7 +2571,7 @@ class SingleBMP(CIP):
                     else:
                         log("  Calculating Water Quality Benefit from this BMP")
                         REMBMPpts = os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp")
-                        GetSubset(BMPpts, REMBMPpts, " \"%s\" <> %s AND %s > 0" % (OIDfield, BMP_FID, bmp_eeff_fld))
+                        GetSubset(BMPpts, REMBMPpts, " \"%s\" <> %s AND %s > 0" % ("FID", BMP_FID, bmp_eeff_fld))
                         #~ arcpy.CopyFeatures_management(BMPpts, )
                         #~ rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp"))
                         #~ row = rows.next()
