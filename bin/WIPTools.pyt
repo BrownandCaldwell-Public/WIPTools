@@ -46,7 +46,7 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
         output = (( Streams_rc * Power( URratio, 1.5 ) + BooleanNot( Streams_rc)) * TSSprod  ) + pointSrcRaster
     output.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_out"))
     cleanoutput = RemoveNulls(output)
-    cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_nul"))
+    # cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_nul"))
     return cleanoutput 
     
 def log(message, err=False):
@@ -265,11 +265,7 @@ def GetTempRasterPath(outputname):
     return newname
     
 def SetPIDs(vec):
-    if ".mdb" in vec:
-        OID = "OBJECTID"
-    else:
-        OID = "FID"
-        
+    OIDfield = arcpy.Describe(vec).OIDFieldName
 
     if not 'PID' in ListofFields(vec):
         log( "Adding PID field" )
@@ -278,7 +274,7 @@ def SetPIDs(vec):
     rows = arcpy.UpdateCursor(vec)
     
     for row in rows:     
-        val = row.getValue(OID)
+        val = row.getValue(OIDfield)
         row.setValue("PID", int(val))
         rows.updateRow(row)
         
@@ -2413,9 +2409,9 @@ class SingleBMP(CIP):
             
             log("\nSingleBMP run started at %s" % (time.asctime()))
             
-            OIDfield = arcpy.Describe(bmp_noclip).OIDFieldName
+            # OIDfield = arcpy.Describe(bmp_noclip).OIDFieldName
             pn = GetAlias(bmp_eeff_fld)[:10]
-            # hp.SetPIDs(bmp_noclip)
+            SetPIDs(bmp_noclip)
             
             vectmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
             BMPpts = os.path.join(arcpy.env.scratchFolder, "BMPpts.shp")
@@ -2485,22 +2481,22 @@ class SingleBMP(CIP):
                 
                 # print "%s\n" % (75*'-')
                 # print BMPpts
-                BMP_FID = BMProw.getValue(OIDfield) 
+                BMP_PID = BMProw.getValue("PID") 
                 
                 log("  Processing point %s of %s..." % (count, all)) 
-                # print "   %s BMPID: %s\n" % (BMPpts, BMP_FID)
+                # print "   %s BMPID: %s\n" % (BMPpts, BMP_PID)
                 
                 bmp_type = BMProw.getValue(bmp_type_fld)
                 bmp_Ex1yr = float(BMProw.getValue(bmp_Ex1yr_fld))
                 bmp_Prop1yr = float(BMProw.getValue(bmp_Prop1yr_fld))
-                log("  Found bmp type of %s, existing Q1 of %s, and proposed Q1 of %s for FID %s" % (bmp_type, bmp_Ex1yr, bmp_Prop1yr, BMP_FID))
+                log("  Found bmp type of %s, existing Q1 of %s, and proposed Q1 of %s for PID %s" % (bmp_type, bmp_Ex1yr, bmp_Prop1yr, BMP_PID))
                 
                 SinBMPpts = os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp")
-                GetSubset(BMPpts, SinBMPpts, " \"%s\" = %s " % (OIDfield, BMP_FID))
+                GetSubset(BMPpts, SinBMPpts, " \"%s\" = %s " % ("PID", BMP_PID))
                 
                 SingleBMP = os.path.join(arcpy.env.scratchFolder, "SingleBMP")
                 log("  Convert this project to a raster mask...")
-                arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder,SinBMPpts), OIDfield, SingleBMP, flowdir)
+                arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder,SinBMPpts), "PID", SingleBMP, flowdir)
                 SinBMPmask = Reclassify(SingleBMP, "VALUE", "NoData 0; 0.001 100000 1", "DATA")
                 SinBMPmask.save(os.path.join(arcpy.env.scratchFolder,"SinBMPmask"))
                 
@@ -2515,7 +2511,7 @@ class SingleBMP(CIP):
                 bmp_eeff = float(BMProw.getValue(bmp_eeff_fld))
                 bmp_peff = float(BMProw.getValue(bmp_peff_fld))
                 stream_red_per_ft = float(BMProw.getValue(bmp_strlngth_fld)) 
-                log("  Found existing bmp efficiency of %s, proposed bmp efficiency of %s, and stream reduction of %s for FID %s" % (bmp_eeff, bmp_peff, stream_red_per_ft, BMP_FID))
+                log("  Found existing bmp efficiency of %s, proposed bmp efficiency of %s, and stream reduction of %s for PID %s" % (bmp_eeff, bmp_peff, stream_red_per_ft, BMP_PID))
                 
                 # pointsrc = ""
                 # if os.path.exists(os.path.join(arcpy.env.scratchFolder, "pt" + pn)):
@@ -2571,12 +2567,12 @@ class SingleBMP(CIP):
                     else:
                         log("  Calculating Water Quality Benefit from this BMP")
                         REMBMPpts = os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp")
-                        GetSubset(BMPpts, REMBMPpts, " \"%s\" <> %s AND %s > 0" % (OIDfield, BMP_FID, bmp_eeff_fld))
+                        GetSubset(BMPpts, REMBMPpts, " \"%s\" <> %s AND %s > 0" % ("PID", BMP_PID, bmp_eeff_fld))
                         #~ arcpy.CopyFeatures_management(BMPpts, )
                         #~ rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp"))
                         #~ row = rows.next()
                         #~ while row:
-                            #~ if row.getValue("PID") == BMP_FID or float(row.getValue(existing_params[p])) <= 0:
+                            #~ if row.getValue("PID") == BMP_PID or float(row.getValue(existing_params[p])) <= 0:
                                 #~ rows.deleteRow(row)
                             #~ row = rows.next()
                         #~ del row, rows
@@ -2605,12 +2601,12 @@ class SingleBMP(CIP):
                     # print TSSprod, sum
                 
                     log("  Writing attributes")
-                    SetAtt(BMP_FID, pn[:4] + "red" + LU, sum, bmp_noclip)
+                    SetAtt(BMP_PID, pn[:4] + "red" + LU, sum, bmp_noclip)
                 
                 if bmp_type.lower() in ['stream restoration']: 
                     # Calculate in-stream reduction ################################
                     log("Convert Stream Lengths to Raster...")
-                    arcpy.env.extent = os.path.join(arcpy.env.scratchFolder, "flowdir")
+                    # arcpy.env.extent = os.path.join(arcpy.env.scratchFolder, "flowdir")
                     arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp"), strlngth, os.path.join(arcpy.env.scratchFolder, "len"), flowdir)
                     slengths = Float(Raster(os.path.join(arcpy.env.scratchFolder, "len")))
                       
