@@ -44,9 +44,9 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
         output = TSSprod 
     else: 
         output = (( Streams_rc * Power( URratio, 1.5 ) + BooleanNot( Streams_rc)) * TSSprod  ) + pointSrcRaster
-    output.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_out"))
+    output.save(os.path.join(arcpy.env.scratchFolder,"ero_out"))
     cleanoutput = RemoveNulls(output)
-    cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_nul"))
+    cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"ero_nul"))
     return cleanoutput 
     
 def log(message, err=False):
