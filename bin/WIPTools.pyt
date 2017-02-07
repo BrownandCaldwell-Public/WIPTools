@@ -44,9 +44,9 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
         output = TSSprod 
     else: 
         output = (( Streams_rc * Power( URratio, 1.5 ) + BooleanNot( Streams_rc)) * TSSprod  ) + pointSrcRaster
-    output.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_out"))
+    # output.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_out"))
     cleanoutput = RemoveNulls(output)
-    cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_nul"))
+    # cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_nul"))
     return cleanoutput 
     
 def log(message, err=False):
@@ -2176,10 +2176,10 @@ class CIP(tool):
             bmp_CIPproj = parameters[4].valueAsText
             bmp_Ex1yr = parameters[5].valueAsText
             bmp_Prop1yr = parameters[6].valueAsText
-            bmp_strlngth = parameters[7].valueAsText
+            streamLinearRed = parameters[10].valueAsText #optional
             bmp_eeff = parameters[8].valueAsText
             bmp_peff = parameters[9].valueAsText
-            StreamLength = parameters[10].valueAsText
+            StreamLength_fld = parameters[7].valueAsText
             defEro = parameters[11].value
             Basin = parameters[12].valueAsText
             summary_pt_input = parameters[13].valueAsText
@@ -2271,7 +2271,7 @@ class CIP(tool):
                 TSS_reduc = TSSP_ero_ext
             else:
                 log("Convert Stream Lengths to Raster...")
-                len = arcpy.FeatureToRaster_conversion(strBMPs2, bmp_strlngth, os.path.join(arcpy.env.scratchFolder, "len.tif"), flowdir)
+                len = arcpy.FeatureToRaster_conversion(strBMPs2, StreamLength_fld, os.path.join(arcpy.env.scratchFolder, "len.tif"), flowdir)
                 BMPlengths = Float(len)
                  
                 lengths = AttExtract(BMPlengths, flowdir, Stream_Raster, LU+pn+'len.tif', Units)
@@ -2295,11 +2295,11 @@ class CIP(tool):
                 log("Reduce production for Stream Restoration Projects...")
                 TSS_reduc = TSSP_ero_ext - StrTSSRed
                 
-                if StreamLength:
+                if streamLinearRed:
                     
                     log("Convert Stream Projects to Raster...")
                     #~ print bmp_peff
-                    slpf = arcpy.FeatureToRaster_conversion(strBMPs2, StreamLength, os.path.join(arcpy.env.scratchFolder, "slpf.tif"), flowdir)
+                    slpf = arcpy.FeatureToRaster_conversion(strBMPs2, streamLinearRed, os.path.join(arcpy.env.scratchFolder, "slpf.tif"), flowdir)
                     strBMPs3 = Float(slpf)
                     
                     log("Stream reduction per length...")
@@ -2404,10 +2404,10 @@ class SingleBMP(CIP):
             bmp_CIPproj_fld = parameters[3].valueAsText
             bmp_Ex1yr_fld = parameters[4].valueAsText
             bmp_Prop1yr_fld = parameters[5].valueAsText
-            bmp_strlngth_fld = parameters[6].valueAsText
+            streamLinearRed = parameters[9].valueAsText # optional
             bmp_eeff_fld = parameters[7].valueAsText
             bmp_peff_fld = parameters[8].valueAsText
-            StreamLength_fld = parameters[9].valueAsText
+            StreamLength_fld = parameters[6].valueAsText
             defEro = parameters[10].value
             Basin = parameters[11].valueAsText
             
@@ -2466,7 +2466,7 @@ class SingleBMP(CIP):
             
             log("Add erosivity to existing production...")
             TSSP_ero_ext = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster) 
-            TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder,"TSSPeroExt"))
+            TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder,"EroExt"))
             # arcpy.CopyRaster_management(TSSP_ero_ext, os.path.join(arcpy.env.scratchFolder, "ero") + p[:10].strip())
             
             
@@ -2514,7 +2514,7 @@ class SingleBMP(CIP):
                 
                 bmp_eeff = float(BMProw.getValue(bmp_eeff_fld))
                 bmp_peff = float(BMProw.getValue(bmp_peff_fld))
-                stream_red_per_ft = float(BMProw.getValue(bmp_strlngth_fld)) 
+                stream_red_per_ft = float(BMProw.getValue(streamLinearRed)) 
                 log("  Found existing bmp efficiency of %s, proposed bmp efficiency of %s, and stream reduction of %s for PID %s" % (bmp_eeff, bmp_peff, stream_red_per_ft, BMP_FID))
                 
                 # pointsrc = ""
@@ -2611,7 +2611,7 @@ class SingleBMP(CIP):
                     # Calculate in-stream reduction ################################
                     log("Convert Stream Lengths to Raster...")
                     # arcpy.env.extent = os.path.join(arcpy.env.scratchFolder, "flowdir")
-                    arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp"), bmp_strlngth_fld, "len", flowdir)
+                    arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp"), StreamLength_fld, "len", flowdir)
                     slengths = Float(Raster("len"))
                     
                     thisstream = AttExtract(slengths, flowdir, Stream_Raster, "thisstream", Units)
@@ -2635,8 +2635,7 @@ class SingleBMP(CIP):
                     
                     log("Calculate length")
                     thislen = Dist * ThisBMPmask
-                    dist_red = Zonal(thislen) * stream_red_per_ft
-                    # log( "stream_red_per_ft: %s, dist_red: %s" % (stream_red_per_ft, dist_red) )
+                    dist_red = Zonal(thislen) * streamLinearRed
                     
                     log("Summarize Stream reduction from point...")
                     stream_red = Zonal(streamprod) + dist_red
