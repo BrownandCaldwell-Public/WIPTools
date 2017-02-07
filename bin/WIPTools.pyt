@@ -2485,14 +2485,6 @@ class SingleBMP(CIP):
                 stream_red_per_ft = float(BMProw.getValue(streamLinearRed)) 
                 log("  Found existing bmp efficiency of %s, proposed bmp efficiency of %s, and stream reduction of %s for PID %s" % (bmp_eeff, bmp_peff, stream_red_per_ft, BMP_FID))
                 
-                # pointsrc = ""
-                # if os.path.exists(os.path.join(arcpy.env.scratchFolder, "pt" + pn)):
-                    # pointsrc = "pt" + pn
-                # defEro = 0
-                
-                # if p in params:
-                    # defEro = params[p]['DefEro']          
-                
                 if bmp_type.lower() in ['bmp', 'new bmp']:
                     if bmp_Prop1yr < bmp_Ex1yr:
                         Channel_Prot = 1
