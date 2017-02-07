@@ -2436,31 +2436,7 @@ class SingleBMP(CIP):
             existingTSSprod = Raster("p" + LU + pn)
             Units = flowdir.meanCellWidth
             
-            # existing_params = hp.GetAlias(existing_efficiencies)
-            # proposed_params = hp.GetAlias(proposed_efficiencies)
-            # streamreduc_params = hp.GetAlias(stream_reductions)
-            # if not existing_params.keys().sort() == proposed_params.keys().sort() == streamreduc_params.keys().sort():
-                # raise Exception, "Parameters found for Existing efficiencies, Proposed efficiencies, and Stream Reductions does not match"
-                
-            # params = {}
-            
-            # exec(hp.models['ProdTrans']['input'][-1])
-            
-            # log("Preparing input BMPs...")    
-            
-            # for p in existing_params: # If we switch the loops below to be param first point second, then we could include this stuff in the param loop. Right now we don't want to run this calc for every point, hence this bit of code duplication outide the main loops
-                            
-            # pn = p[:10].strip()
-            
-            # pointsrc = ""
-            # if os.path.exists(os.path.join(arcpy.env.scratchFolder, "pt" + pn)):
-                # pointsrc = "pt" + pn
-            # defEro = 0
-            # if p in params:
-                # defEro = params[p]['DefEro']   
-                
             log("Calculate Urban/Rural ratio...")
-    ##        usgs_calcs = Helper.USGSVars(hp.Basin)
             urbanQcpbas = urbanQcp(Cum_da, Cumulative_Impervious, Basin)
             URratio = urbanQcpbas / Rural_1yrQ
             
