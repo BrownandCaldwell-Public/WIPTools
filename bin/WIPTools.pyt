@@ -2456,15 +2456,12 @@ class SingleBMP(CIP):
             BMProws = arcpy.SearchCursor(BMPpts)
             counter = 0
             count = 1
-            #~ while BMProw:        
+            
             for BMProw in BMProws:
                 
-                # print "%s\n" % (75*'-')
-                # print BMPpts
                 BMP_FID = BMProw.getValue("PID") 
                 
                 log("  Processing point %s of %s..." % (count, all)) 
-                # print "   %s BMPID: %s\n" % (BMPpts, BMP_FID)
                 
                 bmp_type = BMProw.getValue(bmp_type_fld)
                 bmp_Ex1yr = float(BMProw.getValue(bmp_Ex1yr_fld))
@@ -2480,12 +2477,7 @@ class SingleBMP(CIP):
                 SinBMPmask = Reclassify(SingleBMP, "VALUE", "NoData 0; 0.001 100000 1", "DATA")
                 SinBMPmask.save(os.path.join(arcpy.env.scratchFolder,"SinBMPmask"))
                 
-                # for p in existing_params:
-                # pn = p[:10].strip()
-                K = os.path.join(arcpy.env.scratchFolder, "K" + pn)
-
-                # TSSP_ero_ext = Raster(os.path.join(arcpy.env.scratchFolder, "ero" + pn))
-                
+                K = os.path.join(arcpy.env.scratchFolder, "K" + pn)    
                 sum, chanp_red, washoff_red = 0, 0, 0
                 
                 bmp_eeff = float(BMProw.getValue(bmp_eeff_fld))
