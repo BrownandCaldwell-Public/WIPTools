@@ -202,7 +202,7 @@ def Zonal(raster, stat='SUM'):
     return computation
     
 def SetAtt(OID, att, val, lyr, alias=None):
-    # log("\t\tPID: %s\n\t\tAttribute: %s\n\t\tValue: %s\n\t\tLayer: %s" % (PID, att, val, lyr) )
+    log("\t\tPID: %s\n\t\tAttribute: %s\n\t\tValue: %s\n\t\tLayer: %s" % (PID, att, val, lyr) )
     OIDfield = arcpy.Describe(lyr).OIDFieldName
     if not alias: alias = att
     
@@ -2553,15 +2553,10 @@ class SingleBMP(CIP):
                         WQ = washoff_red
                         
                     sum = chanp_red + washoff_red
-                    # print TSSprod, sum
-                
-                    log("  Writing attributes")
                     SetAtt(BMP_FID, pn[:4] + "red" + LU, sum, bmp_noclip)
                 
                 if bmp_type.lower() in ['stream restoration']: 
-                    # Calculate in-stream reduction ################################
                     log("Convert Stream Lengths to Raster...")
-                    # arcpy.env.extent = os.path.join(arcpy.env.scratchFolder, "flowdir")
                     arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp"), StreamLength_fld, "len", flowdir)
                     slengths = Float(Raster("len"))
                     
