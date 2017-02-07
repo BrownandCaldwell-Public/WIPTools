@@ -44,9 +44,9 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
         output = TSSprod 
     else: 
         output = (( Streams_rc * Power( URratio, 1.5 ) + BooleanNot( Streams_rc)) * TSSprod  ) + pointSrcRaster
-    # output.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_out"))
+    output.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_out"))
     cleanoutput = RemoveNulls(output)
-    # cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_nul"))
+    cleanoutput.save(os.path.join(arcpy.env.scratchFolder,"TSSP_ero_nul"))
     return cleanoutput 
     
 def log(message, err=False):
@@ -2443,12 +2443,12 @@ class SingleBMP(CIP):
             
             log("Add erosivity to existing production...")
             TSSP_ero_ext = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster) 
-            TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder,"EroExt"))
+            # TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder,"EroExt"))
             
-            log("Checking for input BMPs in your area...")    
-            all = arcpy.GetCount_management(BMPpts)
-            if all <= 1:
-                raise Exception("You must have more than one point to run this tool!")
+            # log("Checking for input BMPs in your area...")    
+            # all = arcpy.GetCount_management(BMPpts)
+            # if all <= 1:
+                # raise Exception("You must have more than one point to run this tool!")
             
             log("Looping through input BMPs...")    
             BMProws = arcpy.SearchCursor(BMPpts)
