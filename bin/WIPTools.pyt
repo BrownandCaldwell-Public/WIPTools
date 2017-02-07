@@ -2378,7 +2378,8 @@ class CIP(tool):
                 log("Summarizing results...")
                 alias = LU + " " + pn + " Load"
                 Summarize(TSSLoadOutput, summary_pts, alias)    
-        
+            
+            log("Done")
         except:       
             i, j, k = sys.exc_info()
             EH(i, j, k)
@@ -2443,14 +2444,11 @@ class SingleBMP(CIP):
             log("Add erosivity to existing production...")
             TSSP_ero_ext = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster) 
             TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder,"EroExt"))
-            # arcpy.CopyRaster_management(TSSP_ero_ext, os.path.join(arcpy.env.scratchFolder, "ero") + p[:10].strip())
             
-            
-            # log("Checking for input BMPs in your area...")    
+            log("Checking for input BMPs in your area...")    
             all = arcpy.GetCount_management(BMPpts)
-            # if all <= 1:
-                # raise Exception("You must have more than one point to run this tool!")
-            
+            if all <= 1:
+                raise Exception("You must have more than one point to run this tool!")
             
             log("Looping through input BMPs...")    
             BMProws = arcpy.SearchCursor(BMPpts)
@@ -2592,7 +2590,8 @@ class SingleBMP(CIP):
                     SetAtt(BMP_FID, pn[:4] + "red" + LU, stream_red, bmp_noclip)
             
                 count += 1   
-        
+            
+            log("Done")
         except:       
             i, j, k = sys.exc_info()
             EH(i, j, k)    
