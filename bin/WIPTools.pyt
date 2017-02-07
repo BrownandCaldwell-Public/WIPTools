@@ -2500,7 +2500,6 @@ class SingleBMP(CIP):
                     else:
                         
                         log("   Calculating Channel Protection from this BMP")
-                        #~ arcpy.Merge_management ("ChanBMPpts.shp; SinBMPpts.shp", "merge.shp")
                         ModCumDa, thisBMPras, this_ds = ChannelProtection(Basin, SinBMPpts, bmp_Prop1yr_fld, flowdir, Cum_da, Cumulative_Impervious) 
                         # ModCumDa.save(os.path.join(arcpy.env.scratchFolder,"modcumda"))
                         this_ds.save(os.path.join(arcpy.env.scratchFolder,"this_ds"))
@@ -2532,14 +2531,6 @@ class SingleBMP(CIP):
                         log("  Calculating Water Quality Benefit from this BMP")
                         REMBMPpts = os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp")
                         GetSubset(BMPpts, REMBMPpts, " \"%s\" <> %s AND %s > 0" % ("PID", BMP_FID, bmp_eeff_fld))
-                        #~ arcpy.CopyFeatures_management(BMPpts, )
-                        #~ rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"RemBMPpts.shp"))
-                        #~ row = rows.next()
-                        #~ while row:
-                            #~ if row.getValue("PID") == BMP_FID or float(row.getValue(existing_params[p])) <= 0:
-                                #~ rows.deleteRow(row)
-                            #~ row = rows.next()
-                        #~ del row, rows
                         
                         log("   Adding erosivity to %s production..." % pn)
                         REMBMPs = (os.path.join(arcpy.env.scratchFolder, "REMBMPs"))
