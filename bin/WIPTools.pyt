@@ -35,7 +35,7 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
     else:
         pointsrc = False
     
-    log("Adding erosivity (%s and %s)..." % ((DefEro != 0), pointsrc))
+    log("   Adding erosivity (defero is %s and pointsrc is %s)..." % ((DefEro != 0), pointsrc))
     if DefEro and not pointsrc:
         output = ( Streams_rc * Power(URratio, 1.5 ) + BooleanNot( Streams_rc)) * TSSprod 
     elif not DefEro and pointsrc:
@@ -78,7 +78,7 @@ def EH(i, j, k):
      
 def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
     import bmpFlowModFast
-    log("\tRunning BMP2DA...")
+    log("    Running BMP2DA...")
     
     lowerLeft = arcpy.Point(flowdir.extent.XMin,flowdir.extent.YMin)
     cellSize = flowdir.meanCellWidth
@@ -107,7 +107,7 @@ def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
         # log("\tOutput: " + os.path.join(arcpy.env.scratchFolder, outputname))
         # stats = arr.flatten()
         # log("\t\tMax: %s Min: %s Avg: %s Med: %s Std: %s Var: %s" % (numpy.amax(stats), numpy.amin(stats), numpy.average(stats), numpy.median(stats), numpy.std(stats), numpy.var(stats)))
-    log( "\tBMP2DA took %6.2f seconds" % (time.time()-start) )
+    log( "    BMP2DA took %6.2f seconds" % (time.time()-start) )
     
     return newRaster
 
@@ -463,7 +463,7 @@ def urban25yrQ(Basin, cum_da, impcov):
 def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervious):
         """Flow reduction calcs"""
 
-        log("Convert Single BMP Project to Raster...")
+        log("   Convert Single BMP Project to Raster...")
         # flowdir = ExtractByMask(flowdir_lrg, mask)
         RasBMPpts = GetTempRasterPath("RasBMPpts")
         arcpy.FeatureToRaster_conversion(BMP_pts, fld, RasBMPpts, flowdir)
@@ -486,7 +486,7 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
 
         else: raise Exception("Unknown basin: " + Basin)
 
-        log("Convert to percent reduction in accumulation...")
+        log("   Convert to percent reduction in accumulation...")
         acc_red = 1 - ( Mod_da / Cum_da)
         Mod_da.save(os.path.join(arcpy.env.scratchFolder,"Mod_da_test"))
         # Cumulative_Impervious.save(os.path.join(arcpy.env.scratchFolder,"CumImp_test"))
@@ -496,11 +496,11 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
         
         ModCumDa_u = BMP2DA(flowdir, "ModCumDa_asc", Raster(arcpy.env.mask), acc_red)
 
-        log("Convert units...")
+        log("   Convert units...")
         conv = (cellSize*cellSize) / 43560
         ModCumDa = ModCumDa_u * conv
     
-        log("Calculating urbanQcp...")
+        log("   Calculating urbanQcp...")
         uQcp = urbanQcp(ModCumDa, Cumulative_Impervious, Basin)
 
         return ModCumDa, thisBMPras, uQcp
