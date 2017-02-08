@@ -202,7 +202,7 @@ def Zonal(raster, stat='SUM'):
     return computation
     
 def SetAtt(OID, att, val, lyr, alias=None):
-    log("\t\tPID: %s\n\t\tAttribute: %s\n\t\tValue: %s\n\t\tLayer: %s" % (PID, att, val, lyr) )
+    log("\t\tPID: %s\n\t\tAttribute: %s\n\t\tValue: %s\n\t\tLayer: %s" % (OID, att, val, lyr) )
     OIDfield = arcpy.Describe(lyr).OIDFieldName
     if not alias: alias = att
     
