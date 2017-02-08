@@ -262,6 +262,7 @@ def GetTempRasterPath(outputname):
     while os.path.exists(newname):
         newname = os.path.join(arcpy.env.scratchFolder, outputname+str(i))
         i+=1
+    log(newname)
     return newname
     
 def SetPIDs(vec):
