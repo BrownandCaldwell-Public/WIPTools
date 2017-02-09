@@ -2580,7 +2580,7 @@ class SingleBMP(CIP):
                     
                     log("Calculate length")
                     thislen = Dist * ThisBMPmask
-                    dist_red = Zonal(thislen) * streamLinearRed
+                    dist_red = Zonal(thislen) * stream_red_per_ft
                     
                     log("Summarize Stream reduction from point...")
                     stream_red = Zonal(streamprod) + dist_red
