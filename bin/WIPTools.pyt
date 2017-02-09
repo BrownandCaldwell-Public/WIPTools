@@ -262,7 +262,7 @@ def GetTempRasterPath(outputname):
     while os.path.exists(newname):
         newname = os.path.join(arcpy.env.scratchFolder, outputname+str(i))
         i+=1
-    log(newname)
+    # log(newname)
     return newname
     
 def SetPIDs(vec):
@@ -2447,7 +2447,7 @@ class SingleBMP(CIP):
             # TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder,"EroExt"))
             
             # log("Checking for input BMPs in your area...")    
-            # all = arcpy.GetCount_management(BMPpts)
+            all = arcpy.GetCount_management(BMPpts)
             # if all <= 1:
                 # raise Exception("You must have more than one point to run this tool!")
             
