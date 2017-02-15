@@ -2304,7 +2304,7 @@ class CIP(tool):
                     strBMPs3 = Float(slpf)
                     
                     log("Stream reduction per length...")
-                    srlength = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'srLen')
+                    srlength = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn[0:3]+'srLen')
                     
                     log("Remove background values...")
                     srlengthm = RemoveNulls(srlength)
@@ -2577,7 +2577,7 @@ class SingleBMP(CIP):
                         
                     log("Calculate distance grid...")
                     Dist = (Flowdirs + Flowdird * 1.4142) * Units
-                    
+                    g
                     log("Calculate length")
                     thislen = Dist * ThisBMPmask
                     dist_red = Zonal(thislen) * stream_red_per_ft
