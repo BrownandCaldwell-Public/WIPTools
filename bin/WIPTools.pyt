@@ -2285,7 +2285,7 @@ class CIP(tool):
                 arcpy.FeatureToRaster_conversion(strBMPs2, bmp_peff, srp, flowdir)
                 strBMPs3 = Float(Raster(srp))
                 
-                PropEffnd = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'attx')
+                PropEffnd = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'attx.tif')
                 
                 log("Remove background values...")
                 PropEff = RemoveNulls(PropEffnd)
