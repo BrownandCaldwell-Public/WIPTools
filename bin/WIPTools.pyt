@@ -951,7 +951,7 @@ class Runoff(tool):
         direction="Input")]
         parameters[-1].columns = [['String', 'Storm'], ['Double', 'Rain depth']]
         parameters[-1].filters[0].type = "ValueList"
-        parameters[-1].filters[0].list = ['Channel Protection', '1yr', '2yr', '5yr', '10yr', '25yr']
+        parameters[-1].filters[0].list = ['Channel_Protection', '1yr', '2yr', '5yr', '10yr', '25yr']
         
         parameters += [arcpy.Parameter(
         displayName="Soils CN Table (LUT.csv)",
@@ -1078,27 +1078,10 @@ class Runoff(tool):
                 row = rows.next()
             del row, rows
             
-            # cum_da = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "cumda"))
-            
             log("Convert union to raster...")
             arcpy.PolygonToRaster_conversion(os.path.join(arcpy.env.scratchFolder,"union.shp"), "CN", os.path.join(arcpy.env.scratchFolder,"CurveN"),"MAXIMUM_AREA","None", cum_da)
             CurveN = Raster(os.path.join(arcpy.env.scratchFolder,"CurveN"))
-            
-            # log("Get precipitation contants for %s ..." % (hp.Basin))
-            # f = open(os.path.join(hp.AppPath, r'../ToolData/Precipdepth.csv'), 'r')
-                
-            # header = f.readline().strip().replace('"', "").split(",")
-            # pdepth = {}
-            # for i in f.readlines():
-                # data = i.strip().replace('"', "").split(',')
-                # if hp.Basin in data[0]:
-                    # for j in range(1, len(header)):
-                        # pdepth[header[j]] = float(data[j])
-            # f.close()
-            
-            # if not pdepth: raise ValueError, "Why is this empty?!"
-            # else: print pdepth
-            
+                        
             #   WQV ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
             log("Volume Calc...")
             # flowacc = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "flowacc"))
@@ -1107,11 +1090,8 @@ class Runoff(tool):
             WQVin = ((cumimpcovlake * 0.009) + 0.05) * float(pdepth)#["WQdepth"]
             WQVin.save('vol'+pname)
 
-            # log("WQ Vol Conv Calc...")
-
-            
+            log("WQ Vol Conv Calc...")
             WQV = WQVin * Convraster
-            # hp.saveRasterOutput(WQV, "WQV") 
             # WQV.save(volflood)
             #~ CurveN = (((1000 / (16 + (10 * WQVin) - (10 * Power((Power(WQVin, 2)) + (1.25 * 1.2 * WQVin), 0.5)))) - 73.852036) / 25.632621) * 38 + 60
             
@@ -1128,79 +1108,11 @@ class Runoff(tool):
             vol1yr = BMP2DA(flowdir, "V1.tif", V1ft)
                 
             chnnl_prot = arcpy.env.mask * vol1yr
-            # hp.saveRasterOutput(chnnl_prot,"chnnlprot")
-
-            ##   10-yr ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-            # log("10yr Urban Vol Calc...")
-            # _V10U = Power((pdepth["depth10yr"] - 0.2 * (( 1000.00 / CurveN ) - 10)) , 2) / (pdepth["depth10yr"] + (0.8 * (( 1000.00 / CurveN ) - 10)))
-            
-            # log("10yr Conv...")
-            # V10Uft = _V10U * hp.units['cellsqft'] / 12 * arcpy.env.mask
-            
-            # log("Flow Accum...")
-           
-            # V10U = hp.BMP2DA(flowdir, "V10U", V10Uft)
-            
-            # log("10yr Rural Vol Calc...")
-            # _V10R = (pdepth["depth10yr"] - 0.2 * (( 1000.00 / pdepth["baseCN"]) - 10))** 2 / (pdepth["depth10yr"] + (0.8 * (( 1000.00 / pdepth["baseCN"]) - 10)))
-            
-            # log("10yr Rural Vol Conv...")
-            # V10Rft = _V10R * hp.units['cellsqft'] / 12 * arcpy.env.mask
-            
-            # log("Flow Accum...")
-            # V10R = hp.BMP2DA(flowdir,"V10R", V10Rft)
-            
-            # log("10yr Flood storage...")
-            # V10Flood = arcpy.env.mask * (V10U - V10R)
-            # hp.saveRasterOutput(V10Flood, "V10Flood")
-            
-            # log("10yr Discharge...")
-            # cumimpcov = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "cumimpcov"))
-
-
-            
-            ##   25-yr ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-            # log("25yr Urban Vol Calc...")
-            # _V25U = Power((pdepth["depth25yr"] - 0.2 * (( 1000.00 / CurveN ) - 10)) , 2) / (pdepth["depth25yr"] + (0.8 * (( 1000.00 / CurveN ) - 10)))
-
-            # log("25yr Conv...")
-            # V25_U_ft= _V25U * hp.units['cellsqft'] / 12 * arcpy.env.mask
-            
-            # log("Flow Accum...")
-            
-            # V25U = hp.BMP2DA(flowdir, "V25U", V25_U_ft)
-            
-            # log("25yr Rural Vol Calc...")
-            # _V25R = (pdepth["depth25yr"] - 0.2 * (( 1000.00 / pdepth["baseCN"]) - 10))** 2 / (pdepth["depth25yr"] + (0.8 * (( 1000.00 / pdepth["baseCN"]) - 10)))
-
-            # log("25yr Rural Vol Conv...")
-            # V25_R_ft = _V25R * hp.units['cellsqft'] / 12 * arcpy.env.mask
-            
-            # log("Flow Accum...")
-            
-            # V25R = hp.BMP2DA(flowdir, "V25R", V25_R_ft)
-            
-            # log("25yr Flood storage...")
-            # V25Flood = arcpy.env.mask * (V25U - V25R)
-            # hp.saveRasterOutput(V25Flood, "V25Flood")
-            
-             
-        ##    usgs_calcs = Helper.USGSVars(hp.Basin)
-        ##    usgs_calcs = Helper.newregression(hp.Basin)
             
             log("Calculating Undeveloped Discharge...")
                 
             UndevQ = ( Power( ( cum_da / 640 ) , 0.649 ) ) * (158 * 0.875)
             UndevQ.save(undevqPath)
-                
-            # urban2yrQ_var = (Power( ( cum_da / 640 ) , 0.554 ) * 1.36 ) * ( Power( impcov, 1.241 )) * ( Power( rural2yrQ(Basin,cum_da), 0.323))
-            # hp.saveRasterOutput(urban2yrQ_var, "urban2yrQ")
-            # urban10yrQ_var = urban10yrQ(hp.Basin,cum_da,cumimpcovlake)
-            # hp.saveRasterOutput(urban10yrQ_var, "urban10yrQ")    
-            # urban25yrQ_var = urban25yrQ(hp.Basin,cum_da,cumimpcovlake)
-            # hp.saveRasterOutput(urban25yrQ_var, "urban25yrQ")
-          
-            # hp.Close()
 
         except:       
             i, j, k = sys.exc_info()
