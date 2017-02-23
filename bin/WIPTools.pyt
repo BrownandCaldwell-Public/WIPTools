@@ -951,7 +951,7 @@ class Runoff(tool):
         direction="Input")]
         parameters[-1].columns = [['String', 'Storm'], ['Double', 'Rain depth']]
         parameters[-1].filters[0].type = "ValueList"
-        parameters[-1].filters[0].list = ['Channel_Protection', '1yr', '2yr', '5yr', '10yr', '25yr']
+        parameters[-1].filters[0].list = ['1yr', '2yr', '5yr', '10yr', '25yr']
         
         parameters += [arcpy.Parameter(
         displayName="Soils CN Table (LUT.csv)",
