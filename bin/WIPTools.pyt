@@ -2150,6 +2150,8 @@ class CIP(tool):
             if "pt" + LU + pn in arcpy.ListRasters(arcpy.env.workspace):
                 pointsrc = Raster(os.path.join(arcpy.env.workspace, "pt" + LU + pn))
             else:
+                for r in arcpy.ListRasters(arcpy.env.workspace):
+                    log("      %s" % (os.path.join(arcpy.env.workspace,r)))
                 log("    Did not find point source raster %s in %s" % ("pt" + LU + pn, arcpy.env.workspace))
                 
             if CP_found > 0:
