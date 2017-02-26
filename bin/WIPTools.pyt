@@ -951,7 +951,7 @@ class Runoff(tool):
         direction="Input")]
         parameters[-1].columns = [['String', 'Storm'], ['Double', 'Rain depth']]
         parameters[-1].filters[0].type = "ValueList"
-        parameters[-1].filters[0].list = ['1yr', '2yr', '5yr', '10yr', '25yr']
+        parameters[-1].filters[0].list = ["WQV", '1yr', '10yr', '25yr']
         
         parameters += [arcpy.Parameter(
         displayName="Soils CN Table (LUT.csv)",
@@ -2149,6 +2149,8 @@ class CIP(tool):
             pointsrc = ""
             if "pt" + LU + pn in arcpy.ListRasters(arcpy.env.workspace):
                 pointsrc = Raster(os.path.join(arcpy.env.workspace, "pt" + LU + pn))
+            else:
+                log("    Did not find point source raster %s in %s" % ("pt" + LU + pn, arcpy.env.workspace))
                 
             if CP_found > 0:
                 Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake") )
