@@ -2150,7 +2150,7 @@ class CIP(tool):
             if "pt" + LU + pn in arcpy.ListRasters():
                 pointsrc = Raster(os.path.join(arcpy.env.workspace, "pt" + LU + pn))
             else:
-                log("    Did not find point source raster %s in %s" % ("pt" + LU + pn, arcpy.ListRasters()))
+                log("   Did not find point source raster %s in %s" % ("pt" + LU + pn, arcpy.ListRasters()))
                 
             if CP_found > 0:
                 Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake") )
