@@ -1050,9 +1050,7 @@ class Runoff(tool):
             LanduseAtt = parameters[1].valueAsText
             Soils = parameters[2].valueAsText
             SoilsAtt = parameters[3].valueAsText
-            log(parameters[4].valueAsText)
-            log(parameters[4].value)
-            pname, pdepth, baseCN = parameters[4].valueAsText.split(" ")
+            stormdata = parameters[4].value
             lutFile = parameters[5].valueAsText
             flowdir = Raster(parameters[6].valueAsText)
             cum_da = Raster(parameters[7].valueAsText)
@@ -1065,106 +1063,110 @@ class Runoff(tool):
             # urban25yrQPath = parameters[14].valueAsText
             
             Units = flowdir.meanCellWidth
-             
-            if pname == "WQV":
-                #   WQV ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-                log("Volume Calc...")
-                # flowacc = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "flowacc"))
-                Convraster = (cum_da * 43560)/12 
-                # cumimpcovlake = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "cumimpcovlake"))
-                WQVin = ((cumimpcovlake * 0.009) + 0.05) * float(pdepth)#["WQdepth"]
-                WQVin.save('vol'+pname)
+            CurveN = None
+            
+            for storm in stormdata:
+                pname, pdepth, baseCN = storm
+                if pname == "WQV":
+                    #   WQV ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                    log("Volume Calc...")
+                    # flowacc = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "flowacc"))
+                    Convraster = (cum_da * 43560)/12 
+                    # cumimpcovlake = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "cumimpcovlake"))
+                    WQVin = ((cumimpcovlake * 0.009) + 0.05) * float(pdepth)#["WQdepth"]
+                    WQVin.save('vol'+pname)
 
-                log("WQ Vol Conv Calc...")
-                WQV = WQVin * Convraster
-                # WQV.save(volflood)
-                #~ CurveN = (((1000 / (16 + (10 * WQVin) - (10 * Power((Power(WQVin, 2)) + (1.25 * 1.2 * WQVin), 0.5)))) - 73.852036) / 25.632621) * 38 + 60
-                
-            else:
-                log(" Clipping input vectors to work area (or mask)")
-                vecMask = os.path.join(arcpy.env.scratchFolder, "vectMask.shp")
-                arcpy.RasterToPolygon_conversion(arcpy.env.mask, vecMask, "SIMPLIFY", "Value")
-                
-                log("Clip inputs to watershed...")
-                arcpy.Clip_analysis(Soils,  vecMask, os.path.join(arcpy.env.scratchFolder,"Soilsclpd.shp"))
-                arcpy.Clip_analysis(Landuse, vecMask, os.path.join(arcpy.env.scratchFolder,"LUclpd.shp"))
-                
-                log("Union of soils and landuse...")
-                arcpy.Union_analysis([os.path.join(arcpy.env.scratchFolder,"LUclpd.shp"), os.path.join(arcpy.env.scratchFolder,"Soilsclpd.shp")], os.path.join(arcpy.env.scratchFolder,"union.shp"))
-                
-                log("Add Curve Number to union...")
-                LUcodes = GetDataTable(lutFile)
-                print LUcodes
-                
-                arcpy.AddField_management(os.path.join(arcpy.env.scratchFolder,"union.shp"), "CN", "LONG", "", "", "", "", "NON_NULLABLE", "NON_REQUIRED", "")
-                rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"union.shp"))
-                row = rows.next()
-                while row:
-                    CN = 1
+                    log("WQ Vol Conv Calc...")
+                    WQV = WQVin * Convraster
+                    # WQV.save(volflood)
+                    #~ CurveN = (((1000 / (16 + (10 * WQVin) - (10 * Power((Power(WQVin, 2)) + (1.25 * 1.2 * WQVin), 0.5)))) - 73.852036) / 25.632621) * 38 + 60
                     
-                    SoilType = row.getValue(SoilsAtt)
-                    if SoilType not in ["A", "B", "C", "D", "W", "BorrowPits", "GulliedLand", "UL"]:
-                        log("  Soil type " + SoilType + " is not equal to A, B, C, D, W (Water), BorrowPits, GulliedLand, or UL (Urban Land), skipping")
-                    else:
-                        
-                        LUType = row.getValue(LanduseAtt)
-                        if SoilType in ["A", "B", "C", "D"]:
-                            SoilType = "CurveN" + SoilType
-                            
-                        if not LUType in LUcodes:
-                            log("  Could not find " + LUType + " in land use table (LUT), skipping")
-                        else:
-                            CN = LUcodes[LUType][SoilType]
-                            
-                    row.setValue("CN", CN)
-                    rows.updateRow(row)
-                    row = rows.next()
-                del row, rows
-                
-                log("Convert union to raster...")
-                arcpy.PolygonToRaster_conversion(os.path.join(arcpy.env.scratchFolder,"union.shp"), "CN", os.path.join(arcpy.env.scratchFolder,"CurveN"),"MAXIMUM_AREA","None", cum_da)
-                CurveN = Raster(os.path.join(arcpy.env.scratchFolder,"CurveN"))
-                
-                if pname == "1yr":
-                
-                    #   1-yr ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-                    log("1-yr Vol Calc...")
-                    # should pull out precip value to tool data table...
-                    V1in = Power( ( float(pdepth) - 0.2 * (( 1000.00 / CurveN ) - 10) ), 2) / ( float(pdepth) + (0.8 * (( 1000.00 / CurveN ) - 10)))
-                    # V1in.save(os.path.join(arcpy.env.scratchFolder, "V1in"))
-                    
-                    log("1-yr Vol Conv...")
-                    V1ft = V1in * Units * Units / 12 * arcpy.env.mask
-                    
-                    log("Flow Accum...")
-                    vol1yr = BMP2DA(flowdir, "V1.tif", V1ft)
-                        
-                    chnnl_prot = arcpy.env.mask * vol1yr
-                    chnnl_prot.save("chnnl_prot")
-                
                 else:
-                    # 10yr or 25-yr ---------------------------------------------------------------------------------------------------------------------------------------
-                    log("%s Urban Vol Calc..." % pname)
-                    _V25U = Power((float(pdepth) - 0.2 * (( 1000.00 / CurveN ) - 10)) , 2) / (float(pdepth) + (0.8 * (( 1000.00 / CurveN ) - 10)))
+                    if not CurveN:
+                        log(" Clipping input vectors to work area (or mask)")
+                        vecMask = os.path.join(arcpy.env.scratchFolder, "vectMask.shp")
+                        arcpy.RasterToPolygon_conversion(arcpy.env.mask, vecMask, "SIMPLIFY", "Value")
+                        
+                        log("Clip inputs to watershed...")
+                        arcpy.Clip_analysis(Soils,  vecMask, os.path.join(arcpy.env.scratchFolder,"Soilsclpd.shp"))
+                        arcpy.Clip_analysis(Landuse, vecMask, os.path.join(arcpy.env.scratchFolder,"LUclpd.shp"))
+                        
+                        log("Union of soils and landuse...")
+                        arcpy.Union_analysis([os.path.join(arcpy.env.scratchFolder,"LUclpd.shp"), os.path.join(arcpy.env.scratchFolder,"Soilsclpd.shp")], os.path.join(arcpy.env.scratchFolder,"union.shp"))
+                        
+                        log("Add Curve Number to union...")
+                        LUcodes = GetDataTable(lutFile)
+                        print LUcodes
+                        
+                        arcpy.AddField_management(os.path.join(arcpy.env.scratchFolder,"union.shp"), "CN", "LONG", "", "", "", "", "NON_NULLABLE", "NON_REQUIRED", "")
+                        rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"union.shp"))
+                        row = rows.next()
+                        while row:
+                            CN = 1
+                            
+                            SoilType = row.getValue(SoilsAtt)
+                            if SoilType not in ["A", "B", "C", "D", "W", "BorrowPits", "GulliedLand", "UL"]:
+                                log("  Soil type " + SoilType + " is not equal to A, B, C, D, W (Water), BorrowPits, GulliedLand, or UL (Urban Land), skipping")
+                            else:
+                                
+                                LUType = row.getValue(LanduseAtt)
+                                if SoilType in ["A", "B", "C", "D"]:
+                                    SoilType = "CurveN" + SoilType
+                                    
+                                if not LUType in LUcodes:
+                                    log("  Could not find " + LUType + " in land use table (LUT), skipping")
+                                else:
+                                    CN = LUcodes[LUType][SoilType]
+                                    
+                            row.setValue("CN", CN)
+                            rows.updateRow(row)
+                            row = rows.next()
+                        del row, rows
+                        
+                        log("Convert union to raster...")
+                        arcpy.PolygonToRaster_conversion(os.path.join(arcpy.env.scratchFolder,"union.shp"), "CN", os.path.join(arcpy.env.scratchFolder,"CurveN"),"MAXIMUM_AREA","None", cum_da)
+                        CurveN = Raster(os.path.join(arcpy.env.scratchFolder,"CurveN"))
+                    
+                    if pname == "1yr":
+                    
+                        #   1-yr ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                        log("1-yr Vol Calc...")
+                        # should pull out precip value to tool data table...
+                        V1in = Power( ( float(pdepth) - 0.2 * (( 1000.00 / CurveN ) - 10) ), 2) / ( float(pdepth) + (0.8 * (( 1000.00 / CurveN ) - 10)))
+                        # V1in.save(os.path.join(arcpy.env.scratchFolder, "V1in"))
+                        
+                        log("1-yr Vol Conv...")
+                        V1ft = V1in * Units * Units / 12 * arcpy.env.mask
+                        
+                        log("Flow Accum...")
+                        vol1yr = BMP2DA(flowdir, "V1.tif", V1ft)
+                            
+                        chnnl_prot = arcpy.env.mask * vol1yr
+                        chnnl_prot.save("chnnl_prot")
+                    
+                    else:
+                        # 10yr or 25-yr ---------------------------------------------------------------------------------------------------------------------------------------
+                        log("%s Urban Vol Calc..." % pname)
+                        _V25U = Power((float(pdepth) - 0.2 * (( 1000.00 / CurveN ) - 10)) , 2) / (float(pdepth) + (0.8 * (( 1000.00 / CurveN ) - 10)))
 
-                    log("%s Conv..." % pname)
-                    V25_U_ft= _V25U * Units * Units / 12 * Mask
-                    
-                    log("Flow Accum...")
-                    V25U = BMP2DA(flowdir, "V25U", V25_U_ft)
-                    
-                    log("%s Rural Vol Calc..." % pname)
-                    _V25R = (float(pdepth) - 0.2 * (( 1000.00 / float(baseCN)) - 10))** 2 / (float(pdepth) + (0.8 * (( 1000.00 / float(baseCN)) - 10)))
+                        log("%s Conv..." % pname)
+                        V25_U_ft= _V25U * Units * Units / 12 * Mask
+                        
+                        log("Flow Accum...")
+                        V25U = BMP2DA(flowdir, "V25U", V25_U_ft)
+                        
+                        log("%s Rural Vol Calc..." % pname)
+                        _V25R = (float(pdepth) - 0.2 * (( 1000.00 / float(baseCN)) - 10))** 2 / (float(pdepth) + (0.8 * (( 1000.00 / float(baseCN)) - 10)))
 
-                    log("%s Rural Vol Conv..." % pname)
-                    V25_R_ft = _V25R * Units * Units / 12 * Mask
-                    
-                    log("Flow Accum...")
-                    V25R = BMP2DA(flowdir, "V25R", V25_R_ft)
-                    
-                    log("25yr Flood storage...")
-                    V25Flood = Mask * (V25U - V25R)
-                    V25Flood.save("V%sFlood" % pname)
+                        log("%s Rural Vol Conv..." % pname)
+                        V25_R_ft = _V25R * Units * Units / 12 * Mask
+                        
+                        log("Flow Accum...")
+                        V25R = BMP2DA(flowdir, "V25R", V25_R_ft)
+                        
+                        log("25yr Flood storage...")
+                        V25Flood = Mask * (V25U - V25R)
+                        V25Flood.save("V%sFlood" % pname)
                 
             ## These should be simple raster calculator statements in model builder, no?
             
