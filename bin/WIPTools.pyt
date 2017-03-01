@@ -1150,7 +1150,7 @@ class Runoff(tool):
                         _V25U = Power((float(pdepth) - 0.2 * (( 1000.00 / CurveN ) - 10)) , 2) / (float(pdepth) + (0.8 * (( 1000.00 / CurveN ) - 10)))
 
                         log("%s Conv..." % pname)
-                        V25_U_ft= _V25U * Units * Units / 12 * Mask
+                        V25_U_ft= _V25U * Units * Units / 12 * arcpy.env.mask
                         
                         log("Flow Accum...")
                         V25U = BMP2DA(flowdir, "V25U", V25_U_ft)
@@ -1159,13 +1159,13 @@ class Runoff(tool):
                         _V25R = (float(pdepth) - 0.2 * (( 1000.00 / float(baseCN)) - 10))** 2 / (float(pdepth) + (0.8 * (( 1000.00 / float(baseCN)) - 10)))
 
                         log("%s Rural Vol Conv..." % pname)
-                        V25_R_ft = _V25R * Units * Units / 12 * Mask
+                        V25_R_ft = _V25R * Units * Units / 12 * arcpy.env.mask
                         
                         log("Flow Accum...")
                         V25R = BMP2DA(flowdir, "V25R", V25_R_ft)
                         
                         log("25yr Flood storage...")
-                        V25Flood = Mask * (V25U - V25R)
+                        V25Flood = arcpy.env.mask * (V25U - V25R)
                         V25Flood.save("V%sFlood" % pname)
                 
             ## These should be simple raster calculator statements in model builder, no?
