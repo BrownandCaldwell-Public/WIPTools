@@ -1082,7 +1082,7 @@ class Runoff(tool):
                     #~ CurveN = (((1000 / (16 + (10 * WQVin) - (10 * Power((Power(WQVin, 2)) + (1.25 * 1.2 * WQVin), 0.5)))) - 73.852036) / 25.632621) * 38 + 60
                     
                 else:
-                    if not CurveN:
+                    if not type(CurveN) == arcpy.Raster:
                         log(" Clipping input vectors to work area (or mask)")
                         vecMask = os.path.join(arcpy.env.scratchFolder, "vectMask.shp")
                         arcpy.RasterToPolygon_conversion(arcpy.env.mask, vecMask, "SIMPLIFY", "Value")
