@@ -1050,6 +1050,8 @@ class Runoff(tool):
             LanduseAtt = parameters[1].valueAsText
             Soils = parameters[2].valueAsText
             SoilsAtt = parameters[3].valueAsText
+            log(parameters[4].valueAsText)
+            log(parameters[4].value)
             pname, pdepth, baseCN = parameters[4].valueAsText.split(" ")
             lutFile = parameters[5].valueAsText
             flowdir = Raster(parameters[6].valueAsText)
