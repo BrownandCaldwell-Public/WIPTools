@@ -514,11 +514,11 @@ class tool(object):
         log("\n%s run started at %s from %s using workspace %s and possibly mxd %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace, mxd.filePath))
         
     def __del__(self):
-        log("Done at " + time.asctime() +"\n\n")
+        # log("Done at " + time.asctime() +"\n\n")
         
     def checkEnvVars(self):
-        # for i in arcpy.ListEnvironments():
-            # log("Env %s\t%s" % (i, arcpy.env[i]))
+        for i in arcpy.ListEnvironments():
+            log("Env %s\t%s" % (i, arcpy.env[i]))
         
         if not arcpy.env.workspace:
             raise Exception("Workspace is not set in geoprocessing env settrings. Fix and rerun")
