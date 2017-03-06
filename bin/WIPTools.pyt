@@ -690,9 +690,10 @@ class ImpCov(tool):
     def __init__(self):
         self.label = "ImpCov"
         self.description = "Impervious Cover"
+        tool.__init__()
         
     def __del__(self):
-        super(tool, self).__del__()
+        tool.__del__()
         
     def getParameterInfo(self):
         parameters = []
@@ -795,11 +796,11 @@ class ImpCov(tool):
 
     def execute(self, parameters, messages):
         try:
-            super(tool, self).__init__()
+            
             # Script arguments...
             Impervious_Polygons_Vector_preclip = parameters[0].valueAsText
             Lakes_Polygon_Vector_preclip = parameters[1].valueAsText
-            Flow_Direction_Raster = Raster(parameters[2].valueAsText)
+            Flow_Direction_Raster = Raster(parameters[2].valueAsText) * arcpy.env.mask
             Flow_Accumulation = Raster(parameters[3].valueAsText)
             Cum_da = Raster(parameters[4].valueAsText)
             Streams = Raster(parameters[5].valueAsText)
