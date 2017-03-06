@@ -853,7 +853,7 @@ class ImpCov(tool):
             
             log("Reclassifying impervious raster...")
             Reclass_Feat1 = RemoveNulls(Feature_Impe1)
-            # Reclass_Feat1.save(os.path.join(arcpy.env.scratchFolder,"Reclass_Feat1"))
+            Reclass_Feat1.save(os.path.join(arcpy.env.scratchFolder,"Reclass_Feat1"))
             
             # Mask = os.path.join(hp.Workspace+ "\\WIPoutput.mdb","Mask")
             
