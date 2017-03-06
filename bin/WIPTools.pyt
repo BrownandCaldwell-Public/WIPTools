@@ -812,7 +812,7 @@ class ImpCov(tool):
             lakesPath = parameters[10].valueAsText
             
             # cellSize = hp.units['cellsqft']**0.5
-            # arcpy.env.cellSize = "MINOF"
+            arcpy.env.cellSize = "MINOF"
             cellSize = arcpy.Describe(Cum_da).MeanCellHeight
             
             log(" Clipping input vectors to work area (or mask)")
@@ -836,7 +836,7 @@ class ImpCov(tool):
             impid = 'NewId'
             AddID(Impervious_Polygons_Vector, impid)
             
-            arcpy.env.cellSize = float(cellSize)/10
+            # arcpy.env.cellSize = float(cellSize)/10
             Feature_Impe1 = os.path.join(arcpy.env.scratchFolder,"Feature_Impe1")
             arcpy.PolygonToRaster_conversion(Impervious_Polygons_Vector, impid, (os.path.join(arcpy.env.scratchFolder,"Feature_Impe1")),"MAXIMUM_AREA","None", float(cellSize)/10)
             
@@ -844,7 +844,7 @@ class ImpCov(tool):
             log("Reclassifying impervious raster...")
             Reclass_Feat1 = RemoveNulls(Feature_Impe1)
             Reclass_Feat1.save(os.path.join(arcpy.env.scratchFolder,"Reclass_Feat1"))
-            arcpy.env.cellSize = float(cellSize)
+            # arcpy.env.cellSize = float(cellSize)
             
             # Mask = os.path.join(hp.Workspace+ "\\WIPoutput.mdb","Mask")
             
