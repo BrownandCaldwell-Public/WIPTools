@@ -801,7 +801,7 @@ class ImpCov(tool):
             # Script arguments...
             Impervious_Polygons_Vector_preclip = parameters[0].valueAsText
             Lakes_Polygon_Vector_preclip = parameters[1].valueAsText
-            Flow_Direction_Raster = Raster(parameters[2].valueAsText) * arcpy.env.mask
+            Flow_Direction_Raster = ExtractByMask(Raster(parameters[2].valueAsText), arcpy.env.mask)
             Flow_Accumulation = Raster(parameters[3].valueAsText)
             Cum_da = Raster(parameters[4].valueAsText)
             Streams = Raster(parameters[5].valueAsText)
@@ -840,18 +840,14 @@ class ImpCov(tool):
             Feature_Impe1 = os.path.join(arcpy.env.scratchFolder,"Feature_Impe1")
             arcpy.PolygonToRaster_conversion(Impervious_Polygons_Vector, impid, (os.path.join(arcpy.env.scratchFolder,"Feature_Impe1")),"MAXIMUM_AREA","None", float(cellSize)/10)
             
-            
             log("Reclassifying impervious raster...")
             Reclass_Feat1 = RemoveNulls(Feature_Impe1)
             Reclass_Feat1.save(os.path.join(arcpy.env.scratchFolder,"Reclass_Feat1"))
             # arcpy.env.cellSize = float(cellSize)
             
-            # Mask = os.path.join(hp.Workspace+ "\\WIPoutput.mdb","Mask")
-            
-            # arcpy.env.extent = Mask
             log("Computing block statistics...")
             BlockSt_Recl1 = BlockStatistics(Reclass_Feat1, NbrRectangle(10, 10, "CELL"), "SUM", "DATA")
-        ##    BlockSt_Recl1.save(os.path.join(arcpy.env.scratchFolder,"BlockSt_Recl1"))
+            BlockSt_Recl1.save(os.path.join(arcpy.env.scratchFolder,"BlockSt_Recl1"))
             
             log("Aggregate...")
             Imp_Cover_pc = Aggregate(BlockSt_Recl1,10, "MEAN", "EXPAND", "DATA")
@@ -862,30 +858,15 @@ class ImpCov(tool):
             
             Flow_Accumulation_weighted = BMP2DA(Flow_Direction_Raster,"flow_accw.tif", Imp_Cover)
             
-            # hp.saveRasterOutput(Imp_Cover, "Impcov")
-            
-        ##    if os.path.exists(demximp):
-        ##        demximp_clip = demximp*arcpy.env.mask
-        ##        args = '"%s" "%s" "%s"' % (Flow_Direction_Raster, demximp_asc, demximp_clip.catalogPath)
-        ##        hp.RunScript("BMP2DA", args)
-        ##
-        ##        demximp_extr = Raster(demximp_asc)
-        ##    else:
-            demximp_extr = 0
-                
             log("Divide...")
-            cumimpcov=arcpy.env.mask * (Flow_Accumulation_weighted + demximp_extr ) / Flow_Accumulation
-            # hp.saveRasterOutput(cumimpcov, "cumimpcov")
+            cumimpcov=Flow_Accumulation_weighted / Flow_Accumulation
             cumimpcov.save(cumimpcovPath)
             
             log("Clip output to streams...")
             Clipped_ = Int(RoundUp(RoundDown(cumimpcov * Streams * 20000 ) / 2))
             
             log("Vectorize...")
-            # vector = os.path.join(hp.Workspace + "\\WIPoutput.mdb", "cumimpcovvec")
             StreamToFeature(Clipped_, Flow_Direction_Raster, vector, "NO_SIMPLIFY")
-            # hp.models[hp.current_tool]["output"].append(vector)
-            
             ConvertGRIDCODEatt(vector)
             
             # Add lakes for other tools that use it
