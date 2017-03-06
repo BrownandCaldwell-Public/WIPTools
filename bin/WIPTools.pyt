@@ -508,7 +508,7 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
 #</details> 
 
 class tool(object):
-    def __init__(self):
+    def execute(self):
         self.checkEnvVars()
         mxd = arcpy.mapping.MapDocument("CURRENT")
         log("\n%s run started at %s from %s using workspace %s and possibly mxd %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace, mxd.filePath))
@@ -517,8 +517,8 @@ class tool(object):
         log("Done at " + time.asctime() +"\n\n")
         
     def checkEnvVars(self):
-        for i in arcpy.ListEnvironments():
-            log("Env %s\t%s" % (i, arcpy.env[i]))
+        # for i in arcpy.ListEnvironments():
+            # log("Env %s\t%s" % (i, arcpy.env[i]))
         
         if not arcpy.env.workspace:
             raise Exception("Workspace is not set in geoprocessing env settrings. Fix and rerun")
@@ -796,7 +796,7 @@ class ImpCov(tool):
 
     def execute(self, parameters, messages):
         try:
-            
+            tool.execute(self)
             # Script arguments...
             Impervious_Polygons_Vector_preclip = parameters[0].valueAsText
             Lakes_Polygon_Vector_preclip = parameters[1].valueAsText
