@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# ArcGIS crap
+*.pyt.xml
+
 # C extensions
 *.so
 
