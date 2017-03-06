@@ -690,10 +690,10 @@ class ImpCov(tool):
     def __init__(self):
         self.label = "ImpCov"
         self.description = "Impervious Cover"
-        tool.__init__()
+        tool.__init__(self)
         
     def __del__(self):
-        tool.__del__()
+        tool.__del__(self)
         
     def getParameterInfo(self):
         parameters = []
