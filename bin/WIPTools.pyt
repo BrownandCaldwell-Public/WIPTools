@@ -540,7 +540,7 @@ class TopoHydro(tool):
     def __init__(self):
         self.label = "TopoHydro"
         self.description = "Topopgraphy and Hydrology Setup"
-        super(tool, self).__init__()
+        
     def __del__(self):
         super(tool, self).__del__()
     
@@ -618,7 +618,7 @@ class TopoHydro(tool):
 
     def execute(self, parameters, messages):
         try:
-            # tool.check(self)
+            super(tool, self).__init__()
             tempdem = parameters[0].valueAsText
             ThisMask = parameters[1].valueAsText
             Threshold_for_stream_formation__acres_ = parameters[2].valueAsText
@@ -690,7 +690,7 @@ class ImpCov(tool):
     def __init__(self):
         self.label = "ImpCov"
         self.description = "Impervious Cover"
-        super(tool, self).__init__()
+        
     def __del__(self):
         super(tool, self).__del__()
         
@@ -795,7 +795,7 @@ class ImpCov(tool):
 
     def execute(self, parameters, messages):
         try:
-            # tool.check(self)
+            super(tool, self).__init__()
             # Script arguments...
             Impervious_Polygons_Vector_preclip = parameters[0].valueAsText
             Lakes_Polygon_Vector_preclip = parameters[1].valueAsText
@@ -925,7 +925,7 @@ class Runoff(tool):
     def __init__(self):
         self.label = "Runoff"
         self.description = "Runoff"
-        super(tool, self).__init__()
+        
     def __del__(self):
         super(tool, self).__del__()
         
@@ -1064,7 +1064,7 @@ class Runoff(tool):
 
     def execute(self, parameters, messages):
         try:
-            # tool.check(self)
+            super(tool, self).__init__()
             Landuse = parameters[0].valueAsText
             LanduseAtt = parameters[1].valueAsText
             Soils = parameters[2].valueAsText
@@ -1204,7 +1204,7 @@ class ProdTrans(tool):
     def __init__(self):
         self.label = "ProdTrans"
         self.description = "Production and Transport Setup"
-        super(tool, self).__init__()
+        
     def __del__(self):
         super(tool, self).__del__()
         
@@ -1486,7 +1486,7 @@ class ProdTrans(tool):
 
     def execute(self, parameters, messages):
         try:
-            # tool.check(self)
+            super(tool, self).__init__()
             # for i, p in enumerate(parameters):
                 # log("%s: %s" % (i, p.valueAsText))
             if not arcpy.env.mask:
@@ -1830,7 +1830,7 @@ class Baseline(tool):
     def __init__(self):
         self.label = "Baseline"
         self.description = "Baseline"
-        super(tool, self).__init__()
+        
     def __del__(self):
         super(tool, self).__del__()
         
@@ -1922,7 +1922,7 @@ class Baseline(tool):
 
     def execute(self, parameters, messages):
         try:
-            # tool.check(self)
+            super(tool, self).__init__()
             log("\nBaseline run started at %s" % time.asctime())
             
             bmp_noclip = parameters[2].valueAsText
@@ -2014,7 +2014,7 @@ class CIP(tool):
     def __init__(self):
         self.label = "CIP"
         self.description = "CIP"
-        super(tool, self).__init__()
+        
     def __del__(self):
         super(tool, self).__del__()
         
@@ -2170,7 +2170,7 @@ class CIP(tool):
 
     def execute(self, parameters, messages):
         try:
-            # tool.check(self)
+            super(tool, self).__init__()
             ScenName = parameters[0].valueAsText
             LU = parameters[1].valueAsText.upper()[0]
             bmp_noclip = parameters[2].valueAsText
@@ -2393,7 +2393,7 @@ class SingleBMP(CIP):
     def __init__(self):
         self.label = "SingleBMP"
         self.description = "SingleBMP"
-        super(tool, self).__init__()
+        
     def __del__(self):
         super(tool, self).__del__()
         
@@ -2406,7 +2406,7 @@ class SingleBMP(CIP):
     
     def execute(self, parameters, messages):
         try:
-            # tool.check(self)
+            super(tool, self).__init__()
             LU = parameters[0].valueAsText.upper()[0]
             bmp_noclip = parameters[1].valueAsText
             bmp_type_fld = parameters[2].valueAsText
