@@ -752,7 +752,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"impcov")
-        parameters[-1].parameterDependencies = [arcpy.env.workspace]
+        # parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Cover",
@@ -761,7 +761,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcov")
-        parameters[-1].parameterDependencies = [arcpy.env.workspace]
+        # parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Cover with Lakes",
@@ -770,7 +770,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovlakes")
-        parameters[-1].parameterDependencies = [arcpy.env.workspace]
+        # parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Vector",
@@ -779,7 +779,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovvec")
-        parameters[-1].parameterDependencies = [arcpy.env.workspace]
+        # parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         parameters += [arcpy.Parameter(
         displayName="Raster Lakes",
@@ -788,7 +788,7 @@ class ImpCov(tool):
         parameterType="Derived",
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"lakes")
-        parameters[-1].parameterDependencies = [arcpy.env.workspace]
+        # parameters[-1].parameterDependencies = [arcpy.env.workspace]
         
         return parameters
 
@@ -801,7 +801,7 @@ class ImpCov(tool):
             # Script arguments...
             Impervious_Polygons_Vector_preclip = parameters[0].valueAsText
             Lakes_Polygon_Vector_preclip = parameters[1].valueAsText
-            Flow_Direction_Raster = ExtractByMask(Raster(parameters[2].valueAsText), arcpy.env.mask)
+            Flow_Direction_Raster = Raster(parameters[2].valueAsText * arcpy.env.mask
             Flow_Accumulation = Raster(parameters[3].valueAsText)
             Cum_da = Raster(parameters[4].valueAsText)
             Streams = Raster(parameters[5].valueAsText)
