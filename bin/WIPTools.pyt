@@ -801,7 +801,7 @@ class ImpCov(tool):
             # Script arguments...
             Impervious_Polygons_Vector_preclip = parameters[0].valueAsText
             Lakes_Polygon_Vector_preclip = parameters[1].valueAsText
-            Flow_Direction_Raster = Raster(parameters[2].valueAsText * arcpy.env.mask
+            Flow_Direction_Raster = Raster(parameters[2].valueAsText) * arcpy.env.mask
             Flow_Accumulation = Raster(parameters[3].valueAsText)
             Cum_da = Raster(parameters[4].valueAsText)
             Streams = Raster(parameters[5].valueAsText)
