@@ -886,7 +886,7 @@ class ImpCov(tool):
             Flow_Accumulation_lakes=BMP2DA(Flow_Direction_Raster, "LFlowacc.tif", Impervious_Cover_Lakes)
             
             log("Divide...")
-            cumimpcovlake = Flow_Accumulation_lakes/Flow_Accumulation
+            cumimpcovlake = RemoveNulls(Flow_Accumulation_lakes)/Flow_Accumulation
             cumimpcovlake.save(cumimpcovlakesPath)
                 
             # hp.Close()
