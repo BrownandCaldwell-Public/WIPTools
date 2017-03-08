@@ -851,16 +851,16 @@ class ImpCov(tool):
             
             log("Aggregate...")
             Imp_Cover_pc = Aggregate(BlockSt_Recl1,10, "MEAN", "EXPAND", "DATA")
-            Imp_Cover_pc.save(os.path.join(arcpy.env.scratchFolder,"impcov_pc"))
             Imp_Cover = ExtractByMask(Imp_Cover_pc, arcpy.env.mask)
             
         ##    Imp_Cover_pc = arcpy.env.mask * Imp_Cover  ## DOES NOT WORK
             Imp_Cover.save(impcovPath)
             
             Flow_Accumulation_weighted = BMP2DA(Flow_Direction_Raster,"flow_accw.tif", Imp_Cover)
+            Flow_Accumulation_weighted_nonulls = RemoveNulls(Flow_Accumulation_weighted)
             
             log("Divide...")
-            cumimpcov=Flow_Accumulation_weighted / Flow_Accumulation
+            cumimpcov=Flow_Accumulation_weighted_nonulls / Flow_Accumulation
             cumimpcov.save(cumimpcovPath)
             
             log("Clip output to streams...")
