@@ -851,6 +851,7 @@ class ImpCov(tool):
             
             log("Aggregate...")
             Imp_Cover_pc = Aggregate(BlockSt_Recl1,10, "MEAN", "EXPAND", "DATA")
+            Imp_Cover_pc.save(os.path.join(arcpy.env.scratchFolder,"impcov_pc"))
             Imp_Cover = ExtractByMask(Imp_Cover_pc, arcpy.env.mask)
             
         ##    Imp_Cover_pc = arcpy.env.mask * Imp_Cover  ## DOES NOT WORK
