@@ -528,7 +528,7 @@ class tool(object):
         if not arcpy.env.mask:
             raise Exception("Mask is not set in geoprocessing env settrings. Fix and rerun")
     
-    def close():
+    def close(self):
         log("\n%s done at %s" % (self.__class__.__name__, time.ctime()))
     
 class Toolbox(object):
@@ -1066,14 +1066,14 @@ class Runoff(tool):
                 pname, pdepth, baseCN = storm
                 if pname == "WQV":
                     #   WQV ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-                    log("Volume Calc...")
+                    log("WQV Volume Calc...")
                     # flowacc = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "flowacc"))
                     Convraster = (cum_da * 43560)/12 
                     # cumimpcovlake = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "cumimpcovlake"))
                     WQVin = ((cumimpcovlake * 0.009) + 0.05) * float(pdepth)#["WQdepth"]
                     WQVin.save('vol'+pname)
 
-                    log("WQ Vol Conv Calc...")
+                    log("WQV Conv Calc...")
                     WQV = WQVin * Convraster
                     # WQV.save(volflood)
                     #~ CurveN = (((1000 / (16 + (10 * WQVin) - (10 * Power((Power(WQVin, 2)) + (1.25 * 1.2 * WQVin), 0.5)))) - 73.852036) / 25.632621) * 38 + 60
