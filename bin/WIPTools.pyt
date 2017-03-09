@@ -527,7 +527,10 @@ class tool(object):
             raise Exception("Workspace is not a fileGDB. Fix and rerun")
         if not arcpy.env.mask:
             raise Exception("Mask is not set in geoprocessing env settrings. Fix and rerun")
-        
+    
+    def close():
+        log("\n%s done at %s" % (self.__class__.__name__, time.ctime()))
+    
 class Toolbox(object):
     def __init__(self):
         self.label = "WIP Tools"
@@ -619,7 +622,7 @@ class TopoHydro(tool):
 
     def execute(self, parameters, messages):
         try:
-            super(tool, self).__init__()
+            tool.execute(self)
             tempdem = parameters[0].valueAsText
             ThisMask = parameters[1].valueAsText
             Threshold_for_stream_formation__acres_ = parameters[2].valueAsText
@@ -682,7 +685,8 @@ class TopoHydro(tool):
              
             log("Vectorize streams...")
             StreamToFeature(Streams_Output_Raster, flowdir, "streamsvec", "SIMPLIFY")
-
+            
+            tool.close(self)
         except:       
             i, j, k = sys.exc_info()
             EH(i, j, k)
@@ -889,7 +893,7 @@ class ImpCov(tool):
             cumimpcovlake = RemoveNulls(Flow_Accumulation_lakes)/Flow_Accumulation
             cumimpcovlake.save(cumimpcovlakesPath)
                 
-            # hp.Close()
+            tool.close(self)
 
         except:       
             i, j, k = sys.exc_info()
@@ -1038,7 +1042,7 @@ class Runoff(tool):
 
     def execute(self, parameters, messages):
         try:
-            super(tool, self).__init__()
+            tool.execute(self)
             Landuse = parameters[0].valueAsText
             LanduseAtt = parameters[1].valueAsText
             Soils = parameters[2].valueAsText
@@ -1123,15 +1127,15 @@ class Runoff(tool):
                     if pname == "1yr":
                     
                         #   1-yr ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-                        log("1-yr Vol Calc...")
+                        log("1yr Vol Calc...")
                         # should pull out precip value to tool data table...
                         V1in = Power( ( float(pdepth) - 0.2 * (( 1000.00 / CurveN ) - 10) ), 2) / ( float(pdepth) + (0.8 * (( 1000.00 / CurveN ) - 10)))
                         # V1in.save(os.path.join(arcpy.env.scratchFolder, "V1in"))
                         
-                        log("1-yr Vol Conv...")
+                        log("1yr Vol Conv...")
                         V1ft = V1in * Units * Units / 12 * arcpy.env.mask
                         
-                        log("Flow Accum...")
+                        log("1yr Flow Accum...")
                         vol1yr = BMP2DA(flowdir, "V1.tif", V1ft)
                             
                         chnnl_prot = arcpy.env.mask * vol1yr
@@ -1145,7 +1149,7 @@ class Runoff(tool):
                         log("%s Conv..." % pname)
                         V25_U_ft= _V25U * Units * Units / 12 #* arcpy.env.mask
                         
-                        log("Flow Accum...")
+                        log("%s Urban Flow Accum..." % pname)
                         V25U = BMP2DA(flowdir, "V25U", V25_U_ft)
                         
                         log("%s Rural Vol Calc..." % pname)
@@ -1154,10 +1158,10 @@ class Runoff(tool):
                         log("%s Rural Vol Conv..." % pname)
                         V25_R_ft = _V25R * Units * Units / 12 #* arcpy.env.mask
                         
-                        log("Flow Accum...")
+                        log("%s Rural Flow Accum..." % pname)
                         V25R = BMP2DA(flowdir, "V25R", V25_R_ft)
                         
-                        log("25yr Flood storage...")
+                        log("%s Flood storage..." % pname)
                         V25Flood = arcpy.env.mask * (V25U - V25R)
                         V25Flood.save("V%sFlood" % pname)
                 
@@ -1169,6 +1173,8 @@ class Runoff(tool):
             # urban2yrQ = regression.urban2yrQ(hp.Basin, cum_da,cumimpcovlake)
             # urban10yrQ = regression.urban10yrQ(hp.Basin,cum_da,cumimpcovlake)
             # urban25yrQ = regression.urban25yrQ(hp.Basin,cum_da,cumimpcovlake)
+            
+            tool.close(self)
             
         except:       
             i, j, k = sys.exc_info()
@@ -1460,7 +1466,7 @@ class ProdTrans(tool):
 
     def execute(self, parameters, messages):
         try:
-            super(tool, self).__init__()
+            tool.execute(self)
             # for i, p in enumerate(parameters):
                 # log("%s: %s" % (i, p.valueAsText))
             if not arcpy.env.mask:
@@ -1794,7 +1800,7 @@ class ProdTrans(tool):
                 arcpy.CopyRaster_management(Koutput, 'K'+LU_code+pn)
                 # Koutput.save('K'+LU_code+pn)
             
-            # hp.Close()
+            tool.close(self)
             
         except:       
             i, j, k = sys.exc_info()
@@ -1896,7 +1902,7 @@ class Baseline(tool):
 
     def execute(self, parameters, messages):
         try:
-            super(tool, self).__init__()
+            tool.execute(self)
             log("\nBaseline run started at %s" % time.asctime())
             
             bmp_noclip = parameters[2].valueAsText
@@ -1979,6 +1985,8 @@ class Baseline(tool):
                 if summary_pt_input:
                     TSSLoadOutput = Raster(os.path.join(arcpy.env.workspace, "L" + LU + pn))
                     Summarize(TSSLoadOutput, summary_pts)        
+            
+            tool.close(self)
             
         except:       
             i, j, k = sys.exc_info()
@@ -2144,7 +2152,7 @@ class CIP(tool):
 
     def execute(self, parameters, messages):
         try:
-            super(tool, self).__init__()
+            tool.execute(self)
             ScenName = parameters[0].valueAsText
             LU = parameters[1].valueAsText.upper()[0]
             bmp_noclip = parameters[2].valueAsText
@@ -2358,7 +2366,8 @@ class CIP(tool):
                 alias = LU + " " + pn + " Load"
                 Summarize(TSSLoadOutput, summary_pts, alias)    
             
-            log("Done")
+            tool.close(self)
+            
         except:       
             i, j, k = sys.exc_info()
             EH(i, j, k)
@@ -2380,7 +2389,7 @@ class SingleBMP(CIP):
     
     def execute(self, parameters, messages):
         try:
-            super(tool, self).__init__()
+            tool.execute(self)
             LU = parameters[0].valueAsText.upper()[0]
             bmp_noclip = parameters[1].valueAsText
             bmp_type_fld = parameters[2].valueAsText
@@ -2573,7 +2582,8 @@ class SingleBMP(CIP):
             
                 count += 1   
             
-            log("Done")
+            tool.close(self)
+            
         except:       
             i, j, k = sys.exc_info()
             EH(i, j, k)    
