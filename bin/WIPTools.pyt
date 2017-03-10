@@ -1067,16 +1067,14 @@ class Runoff(tool):
                 if pname == "WQV":
                     #   WQV ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
                     log("WQV Volume Calc...")
-                    # flowacc = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "flowacc"))
                     Convraster = (cum_da * 43560)/12 
-                    # cumimpcovlake = Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", "cumimpcovlake"))
+                    
                     WQVin = ((cumimpcovlake * 0.009) + 0.05) * float(pdepth)#["WQdepth"]
                     WQVin.save('vol'+pname)
 
                     log("WQV Conv Calc...")
                     WQV = WQVin * Convraster
-                    # WQV.save(volflood)
-                    #~ CurveN = (((1000 / (16 + (10 * WQVin) - (10 * Power((Power(WQVin, 2)) + (1.25 * 1.2 * WQVin), 0.5)))) - 73.852036) / 25.632621) * 38 + 60
+                    WQV.save(volflood)
                     
                 else:
                     if not type(CurveN) == arcpy.Raster:
@@ -1153,7 +1151,7 @@ class Runoff(tool):
                         V25U = BMP2DA(flowdir, "V25U", V25_U_ft)
                         
                         log("%s Rural Vol Calc..." % pname)
-                        _V25R = (float(pdepth) - 0.2 * (( 1000.00 / float(baseCN)) - 10))** 2 / (float(pdepth) + (0.8 * (( 1000.00 / float(baseCN)) - 10)))
+                        _V25R = Power((float(pdepth) - 0.2 * (( 1000.00 / float(baseCN)) - 10)), 2) / (float(pdepth) + (0.8 * (( 1000.00 / float(baseCN)) - 10)))
 
                         log("%s Rural Vol Conv..." % pname)
                         V25_R_ft = _V25R * Units * Units / 12 #* arcpy.env.mask
