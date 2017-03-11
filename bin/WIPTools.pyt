@@ -967,20 +967,20 @@ class Runoff(tool):
         parameters[-1].value = os.path.join(arcpy.env.workspace,"flowdir")
         
         parameters += [arcpy.Parameter(
-        displayName="Flow Accumulation",
-        name="flowacc",
-        datatype="DERasterDataset",
-        parameterType="Required",
-        direction="Input")]
-        parameters[-1].value = os.path.join(arcpy.env.workspace,"Flow_acc")
-        
-        parameters += [arcpy.Parameter(
         displayName="Cumulative Drainage Area",
         name="cumda",
         datatype="DERasterDataset",
         parameterType="Required",
         direction="Input")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"Cumda")
+        
+        parameters += [arcpy.Parameter(
+        displayName="Flow Accumulation",
+        name="flowacc",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"Flow_acc")
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Cover with Lakes",
