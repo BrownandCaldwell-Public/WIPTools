@@ -1612,7 +1612,7 @@ class ProdTrans(tool):
                 
                 if field == RB_Len or field == LB_Len:
                     log("\tExtract %s attribute with cellsize %s..." % (field, Units))
-                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e.tif"), Units)
+                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e"), Units)
                 
                     log("\t\tReclassify Bank length attribute...")
                     #~ rrange = RemapRange([[-10000000000,0,0], [0.00001,1000000000000,1]]) # this does not work 
@@ -1622,7 +1622,7 @@ class ProdTrans(tool):
                 
                 else: 
                     log("\tExtract %s attribute..." % field)
-                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e.tif"), None)
+                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e"), None)
             
             
             log("Calculate Right bank stream production...")
