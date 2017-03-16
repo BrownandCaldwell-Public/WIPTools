@@ -1577,7 +1577,7 @@ class ProdTrans(tool):
             # hp.saveRasterOutput(lu2temp, LU[2] + pn) ######################
             
             log("Create roughness grid")
-            arcpy.PolygonToRaster_conversion("LULyr", 'Lut.csv.MANNINGSN', os.path.join(arcpy.env.scratchFolder,"MANNINGSN.tif"), "MAXIMUM_AREA", None, Units)
+            arcpy.PolygonToRaster_conversion("LULyr", 'Lut.csv.MANNINGSN', os.path.join(arcpy.env.scratchFolder,"MANNINGSN"), "MAXIMUM_AREA", None, Units)
             
             log("Calculate overland flow velocity")
             MANNINGSN = Raster(os.path.join(arcpy.env.scratchFolder,"MANNINGSN"))
