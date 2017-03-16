@@ -1572,7 +1572,7 @@ class ProdTrans(tool):
             # for param in params:
             # pn = param[:10].strip()
             log( '  Parameter: ' + pn)
-            arcpy.PolygonToRaster_conversion("LULyr", LU_fld, os.path.join(arcpy.env.scratchFolder,"LUacres.tif"), "MAXIMUM_AREA", None, Units)
+            arcpy.PolygonToRaster_conversion("LULyr", LU_fld, os.path.join(arcpy.env.scratchFolder,"LUacres"), "MAXIMUM_AREA", None, Units)
             LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")) * float(Units*Units/43560)
             # hp.saveRasterOutput(lu2temp, LU[2] + pn) ######################
             
