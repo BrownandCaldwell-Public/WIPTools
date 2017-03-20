@@ -1289,6 +1289,14 @@ class ProdTrans(tool):
         parameters[-1].filter.type = "ValueList"
         
         parameters += [arcpy.Parameter(
+        displayName="Upland Export field",
+        name="export_fld",
+        datatype="GPString",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].filter.type = "ValueList"
+        
+        parameters += [arcpy.Parameter(
         displayName="Point Sources",
         name="pointsrc",
         datatype="GPFeatureLayer",
@@ -1412,14 +1420,14 @@ class ProdTrans(tool):
         
         
         parameters += [arcpy.Parameter(
-        displayName="Output Production",
+        displayName="Upland Production",
         name="p",
         datatype="DERasterDataset",
         parameterType="Required",
         direction="Output")]
         
         parameters += [arcpy.Parameter(
-        displayName="Output Load",
+        displayName="Combined production",
         name="q",
         datatype="DERasterDataset",
         parameterType="Required",
@@ -1454,7 +1462,7 @@ class ProdTrans(tool):
             for p in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
                 parameters[p].filter.list = l
                 
-        for p in [11,13]:
+        for p in [11, 12, 14]:
             param = parameters[p]
             if parameters[p-1].value:
                 fields = arcpy.ListFields(parameters[p-1].value)
@@ -1491,32 +1499,33 @@ class ProdTrans(tool):
             else:
                 LU_code = ""
             LU_fld  = parameters[11].valueAsText
+            Export_fld  = parameters[12].valueAsText
             pn = LU_fld.split('.')[-1]
            
-            pointsources = parameters[12].valueAsText
-            point_fld    = parameters[13].valueAsText
+            pointsources = parameters[13].valueAsText
+            point_fld    = parameters[14].valueAsText
             
-            K = parameters[14].valueAsText
-            slope = parameters[15].valueAsText
+            K = parameters[15].valueAsText
+            slope = parameters[16].valueAsText
             
-            BankHydCoe = float(parameters[16].valueAsText)
-            BankHydExp = float(parameters[17].valueAsText)
-            n_default = float(parameters[18].valueAsText)
-            defEro = float(parameters[19].valueAsText)
-            defProd = float(parameters[20].valueAsText)
+            BankHydCoe = float(parameters[17].valueAsText)
+            BankHydExp = float(parameters[18].valueAsText)
+            n_default = float(parameters[19].valueAsText)
+            defEro = float(parameters[20].valueAsText)
+            defProd = float(parameters[21].valueAsText)
             
-            flowdir = Raster(parameters[21].valueAsText) * arcpy.env.mask 
-            cumda = Raster(parameters[22].valueAsText)
-            Streams_nd = Raster(parameters[23].valueAsText)
+            flowdir = Raster(parameters[22].valueAsText) * arcpy.env.mask 
+            cumda = Raster(parameters[23].valueAsText)
+            Streams_nd = Raster(parameters[24].valueAsText)
             streams = RemoveNulls(Streams_nd)
-            Impervious_Cover = Raster(parameters[24].valueAsText)
-            Cumulative_Impervious = Raster(parameters[25].valueAsText)
-            Rural_1yrQ = Raster(parameters[26].valueAsText)
-            lakes = Raster(parameters[27].valueAsText)
+            Impervious_Cover = Raster(parameters[25].valueAsText)
+            Cumulative_Impervious = Raster(parameters[26].valueAsText)
+            Rural_1yrQ = Raster(parameters[27].valueAsText)
+            lakes = Raster(parameters[28].valueAsText)
             
-            qPath = parameters[28].valueAsText
-            pPath = parameters[29].valueAsText
-            Basin = parameters[30].valueAsText
+            qPath = parameters[29].valueAsText
+            pPath = parameters[30].valueAsText
+            Basin = parameters[31].valueAsText
             
             Units = flowdir.meanCellWidth
             
@@ -1572,11 +1581,11 @@ class ProdTrans(tool):
             # for param in params:
             # pn = param[:10].strip()
             log( '  Parameter: ' + pn)
-            arcpy.PolygonToRaster_conversion("LULyr", LU_fld, os.path.join(arcpy.env.scratchFolder,"LUacres"), "MAXIMUM_AREA", None, Units)
+            arcpy.PolygonToRaster_conversion("LULyr", Export_fld, os.path.join(arcpy.env.scratchFolder,"LUacres"), "MAXIMUM_AREA", None, Units)
             LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")) * float(Units*Units/43560)
             # hp.saveRasterOutput(lu2temp, LU[2] + pn) ######################
             
-            log("Create roughness grid")
+            log("Create roughness grid")  ######
             arcpy.PolygonToRaster_conversion("LULyr", 'Lut.csv.MANNINGSN', os.path.join(arcpy.env.scratchFolder,"MANNINGSN"), "MAXIMUM_AREA", None, Units)
             
             log("Calculate overland flow velocity")
