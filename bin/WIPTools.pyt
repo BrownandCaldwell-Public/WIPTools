@@ -1462,13 +1462,17 @@ class ProdTrans(tool):
             for p in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
                 parameters[p].filter.list = l
                 
-        for p in [11, 12, 14]:
-            param = parameters[p]
-            if parameters[p-1].value:
-                fields = arcpy.ListFields(parameters[p-1].value)
-                l = [f.name for f in fields]
-                param.filter.list = l
-                
+        if parameters[10].value:
+            fields = arcpy.ListFields(parameters[10].value)
+            l = [f.name for f in fields]
+            parameters[11].filter.list = l
+            parameters[12].filter.list = l
+            
+        if parameters[13].value:
+            fields = arcpy.ListFields(parameters[13].value)
+            l = [f.name for f in fields]
+            parameters[14].filter.list = l
+            
         return
 
     def execute(self, parameters, messages):
