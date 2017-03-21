@@ -1527,8 +1527,8 @@ class ProdTrans(tool):
             Rural_1yrQ = Raster(parameters[27].valueAsText)
             lakes = Raster(parameters[28].valueAsText)
             
-            qPath = parameters[29].valueAsText
-            pPath = parameters[30].valueAsText
+            pPath = parameters[29].valueAsText
+            qPath = parameters[30].valueAsText
             Basin = parameters[31].valueAsText
             
             Units = flowdir.meanCellWidth
