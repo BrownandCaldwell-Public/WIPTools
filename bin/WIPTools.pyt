@@ -1511,6 +1511,7 @@ class ProdTrans(tool):
                 LU_code = "F"
             else:
                 LU_code = ""
+            log("LU code: " + LU_code)
             LU_fld  = parameters[11].valueAsText
             Export_fld  = parameters[12].valueAsText
             Mannings_fld = parameters[13].valueAsText
@@ -1564,12 +1565,12 @@ class ProdTrans(tool):
             
             log("Create Export Coefficient (washoff rate) rasters")
             log( '  Parameter: %s from field %s' % (pn, Export_fld))
-            arcpy.PolygonToRaster_conversion("LULyr", Export_fld, os.path.join(arcpy.env.scratchFolder,"LUacres"), "MAXIMUM_AREA", None, Units)
+            arcpy.PolygonToRaster_conversion(LU_file, Export_fld, os.path.join(arcpy.env.scratchFolder,"LUacres"), "MAXIMUM_AREA", None, Units)
             LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")) * (Units*Units/43560.00)
             LU2.save(os.path.join(arcpy.env.scratchFolder, "lu2"))
             
             log("Create roughness grid")  ######
-            arcpy.PolygonToRaster_conversion("LULyr", Mannings_fld, os.path.join(arcpy.env.scratchFolder,"MANNINGSN"), "MAXIMUM_AREA", None, Units)
+            arcpy.PolygonToRaster_conversion(LU_file, Mannings_fld, os.path.join(arcpy.env.scratchFolder,"MANNINGSN"), "MAXIMUM_AREA", None, Units)
             
             log("Calculate overland flow velocity")
             MANNINGSN = Raster(os.path.join(arcpy.env.scratchFolder,"MANNINGSN"))
