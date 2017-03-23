@@ -1514,7 +1514,7 @@ class ProdTrans(tool):
             LU_fld  = parameters[11].valueAsText
             Export_fld  = parameters[12].valueAsText
             Mannings_fld = parameters[13].valueAsText
-            pn = LU_fld.split('.')[-1]
+            pn = Export_fld.split('.')[-1]
            
             pointsources = parameters[14].valueAsText
             point_fld    = parameters[15].valueAsText
