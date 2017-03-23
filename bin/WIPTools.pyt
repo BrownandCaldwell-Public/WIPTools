@@ -1561,39 +1561,8 @@ class ProdTrans(tool):
             log("Calculate distance grid...")
             Dist = (Flowdirs + Flowdird * 1.4142)* Units
             Dist.save(os.path.join(arcpy.env.scratchFolder, "dist"))
-
-            # params = {}
-            # exec(sys.argv[21])
-            # if not params:
-                # log("   \nThere are no parameters selected to calculate production for!!")
-                # raise Exception
-                
-            # Landuses = []
-            # if LU_existing_file != "":
-                # Landuses.append( ( LU_existing_file, LU_existing_fld, "E" ) )
-            # if LU_future_file != "":
-                # Landuses.append( ( LU_future_file, LU_future_fld, "F" ) )
-            # if Landuses == []:   
-                # log("   \nThere are no parameters selected to calculate production for!!")
-                # raise Exception
-            
-            # for LU in Landuses:
-            # log("Join LUT to landuse layer")
-            # arcpy.MakeFeatureLayer_management(LU_file, "LULyr")
-            
-            # input = file(os.path.join(hp.AppPath, r"..\Tooldata\LUT.csv"), 'r')
-            # output = file(os.path.join(arcpy.env.scratchFolder, "LUT.txt"), 'w')
-            # output.write(input.read().replace(",", "\t"))
-            # input.close()
-            # output.close()
-            
-            # arcpy.MakeTableView_management(os.path.join(arcpy.env.scratchFolder, "LUT.txt"), "LUTview")
-            # arcpy.AddJoin_management("LULyr" , LU[1], "LUTview", "TABLE_MATC")
-
             
             log("Create Export Coefficient (washoff rate) rasters")
-            # for param in params:
-            # pn = param[:10].strip()
             log( '  Parameter: ' + pn)
             arcpy.PolygonToRaster_conversion("LULyr", Export_fld, os.path.join(arcpy.env.scratchFolder,"LUacres"), "MAXIMUM_AREA", None, Units)
             LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")) * (Units*Units/43560.00)
@@ -1619,10 +1588,6 @@ class ProdTrans(tool):
             log("Stream Assessment points to raster...")
             fields = [RB_Ero, RB_Hgt, RB_Len, LB_Ero, LB_Hgt, LB_Len,n_channel, BankWidth, BankDepth]
             for field in fields:
-                
-                #~ ras = os.path.join(arcpy.env.scratchFolder, field.replace("_","") + "ras")
-                #~ extract = field+"e"
-                #~ asc = os.path.join(arcpy.env.scratchFolder, field+"ras.asc")
                 
                 f = os.path.join(arcpy.env.scratchFolder, "f" + field)
                 arcpy.FeatureToRaster_conversion(StrInvPts, field, f, flowdir)
