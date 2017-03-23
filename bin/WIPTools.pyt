@@ -1563,7 +1563,7 @@ class ProdTrans(tool):
             Dist.save(os.path.join(arcpy.env.scratchFolder, "dist"))
             
             log("Create Export Coefficient (washoff rate) rasters")
-            log( '  Parameter: ' + pn)
+            log( '  Parameter: %s from field %s' % (pn, Export_fld))
             arcpy.PolygonToRaster_conversion("LULyr", Export_fld, os.path.join(arcpy.env.scratchFolder,"LUacres"), "MAXIMUM_AREA", None, Units)
             LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")) * (Units*Units/43560.00)
             LU2.save(os.path.join(arcpy.env.scratchFolder, "lu2"))
