@@ -1297,6 +1297,14 @@ class ProdTrans(tool):
         parameters[-1].filter.type = "ValueList"
         
         parameters += [arcpy.Parameter(
+        displayName="Mannings N field",
+        name="mannings_fld",
+        datatype="GPString",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].filter.type = "ValueList"
+        
+        parameters += [arcpy.Parameter(
         displayName="Point Sources",
         name="pointsrc",
         datatype="GPFeatureLayer",
@@ -1467,11 +1475,12 @@ class ProdTrans(tool):
             l = [f.name for f in fields]
             parameters[11].filter.list = l
             parameters[12].filter.list = l
+            parameters[13].filter.list = l
             
-        if parameters[13].value:
-            fields = arcpy.ListFields(parameters[13].value)
+        if parameters[14].value:
+            fields = arcpy.ListFields(parameters[14].value)
             l = [f.name for f in fields]
-            parameters[14].filter.list = l
+            parameters[15].filter.list = l
             
         return
 
@@ -1504,32 +1513,33 @@ class ProdTrans(tool):
                 LU_code = ""
             LU_fld  = parameters[11].valueAsText
             Export_fld  = parameters[12].valueAsText
+            Mannings_fld = parameters[13].valueAsText
             pn = LU_fld.split('.')[-1]
            
-            pointsources = parameters[13].valueAsText
-            point_fld    = parameters[14].valueAsText
+            pointsources = parameters[14].valueAsText
+            point_fld    = parameters[15].valueAsText
             
-            K = parameters[15].valueAsText
-            slope = parameters[16].valueAsText
+            K = parameters[16].valueAsText
+            slope = parameters[17].valueAsText
             
-            BankHydCoe = float(parameters[17].valueAsText)
-            BankHydExp = float(parameters[18].valueAsText)
-            n_default = float(parameters[19].valueAsText)
-            defEro = float(parameters[20].valueAsText)
-            defProd = float(parameters[21].valueAsText)
+            BankHydCoe = float(parameters[18].valueAsText)
+            BankHydExp = float(parameters[19].valueAsText)
+            n_default = float(parameters[20].valueAsText)
+            defEro = float(parameters[21].valueAsText)
+            defProd = float(parameters[22].valueAsText)
             
-            flowdir = Raster(parameters[22].valueAsText) * arcpy.env.mask 
-            cumda = Raster(parameters[23].valueAsText)
-            Streams_nd = Raster(parameters[24].valueAsText)
+            flowdir = Raster(parameters[23].valueAsText) * arcpy.env.mask 
+            cumda = Raster(parameters[24].valueAsText)
+            Streams_nd = Raster(parameters[25].valueAsText)
             streams = RemoveNulls(Streams_nd)
-            Impervious_Cover = Raster(parameters[25].valueAsText)
-            Cumulative_Impervious = Raster(parameters[26].valueAsText)
-            Rural_1yrQ = Raster(parameters[27].valueAsText)
-            lakes = Raster(parameters[28].valueAsText)
+            Impervious_Cover = Raster(parameters[26].valueAsText)
+            Cumulative_Impervious = Raster(parameters[27].valueAsText)
+            Rural_1yrQ = Raster(parameters[28].valueAsText)
+            lakes = Raster(parameters[29].valueAsText)
             
-            pPath = parameters[29].valueAsText
-            qPath = parameters[30].valueAsText
-            Basin = parameters[31].valueAsText
+            pPath = parameters[30].valueAsText
+            qPath = parameters[31].valueAsText
+            Basin = parameters[32].valueAsText
             
             Units = flowdir.meanCellWidth
             
@@ -1568,8 +1578,8 @@ class ProdTrans(tool):
                 # raise Exception
             
             # for LU in Landuses:
-            log("Join LUT to landuse layer")
-            arcpy.MakeFeatureLayer_management(LU_file, "LULyr")
+            # log("Join LUT to landuse layer")
+            # arcpy.MakeFeatureLayer_management(LU_file, "LULyr")
             
             # input = file(os.path.join(hp.AppPath, r"..\Tooldata\LUT.csv"), 'r')
             # output = file(os.path.join(arcpy.env.scratchFolder, "LUT.txt"), 'w')
@@ -1590,7 +1600,7 @@ class ProdTrans(tool):
             LU2.save(os.path.join(arcpy.env.scratchFolder, "lu2"))
             
             log("Create roughness grid")  ######
-            arcpy.PolygonToRaster_conversion("LULyr", 'Lut.csv.MANNINGSN', os.path.join(arcpy.env.scratchFolder,"MANNINGSN"), "MAXIMUM_AREA", None, Units)
+            arcpy.PolygonToRaster_conversion("LULyr", Mannings_fld, os.path.join(arcpy.env.scratchFolder,"MANNINGSN"), "MAXIMUM_AREA", None, Units)
             
             log("Calculate overland flow velocity")
             MANNINGSN = Raster(os.path.join(arcpy.env.scratchFolder,"MANNINGSN"))
