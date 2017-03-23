@@ -1587,10 +1587,7 @@ class ProdTrans(tool):
             log( '  Parameter: ' + pn)
             arcpy.PolygonToRaster_conversion("LULyr", Export_fld, os.path.join(arcpy.env.scratchFolder,"LUacres"), "MAXIMUM_AREA", None, Units)
             LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")) * (Units*Units/43560.00)
-            log(Units*Units/43560.00)
             LU2.save(os.path.join(arcpy.env.scratchFolder, "lu2"))
-            raise Exception("Check")
-            # hp.saveRasterOutput(lu2temp, LU[2] + pn) ######################
             
             log("Create roughness grid")  ######
             arcpy.PolygonToRaster_conversion("LULyr", 'Lut.csv.MANNINGSN', os.path.join(arcpy.env.scratchFolder,"MANNINGSN"), "MAXIMUM_AREA", None, Units)
