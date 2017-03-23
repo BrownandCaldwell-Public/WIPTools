@@ -1071,7 +1071,7 @@ class Runoff(tool):
                     Convraster = (cum_da * 43560)/12 
                     
                     WQVin = ((cumimpcovlake * 0.009) + 0.05) * float(pdepth)#["WQdepth"]
-                    WQVin.save('vol'+pname)
+                    WQVin.save(os.path.join(arcpy.env.scratchFolder,'vol'+pname))
 
                     log("WQV Conv Calc...")
                     WQV = WQVin * Convraster
@@ -1511,7 +1511,7 @@ class ProdTrans(tool):
                 LU_code = "F"
             else:
                 LU_code = ""
-            log("LU code: " + LU_code)
+            
             LU_fld  = parameters[11].valueAsText
             Export_fld  = parameters[12].valueAsText
             Mannings_fld = parameters[13].valueAsText
