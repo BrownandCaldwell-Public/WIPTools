@@ -941,7 +941,7 @@ class Runoff(tool):
         parameters[-1].filter.type = "ValueList"
         
         parameters += [arcpy.Parameter(
-        displayName="Storm Recurrance Intervals",
+        displayName="Storm Recurrence Intervals",
         name="pdepth",
         datatype="GPValueTable",
         parameterType="Required",
@@ -951,12 +951,31 @@ class Runoff(tool):
         parameters[-1].filters[0].list = ["WQV", '1yr', '10yr', '25yr']
         
         parameters += [arcpy.Parameter(
-        displayName="Soils CN Table (LUT.csv)",
+        displayName="Curve Number (CN) Table (lut.csv)",
         name="lut",
         datatype=["DETable","GPTableView"],
         parameterType="Required",
         direction="Input")]
         
+        parameters += [
+        arcpy.Parameter(
+        displayName="Basin",
+        name="basin",
+        datatype="String",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].filter.type = "ValueList"
+        parameters[-1].filter.list = [
+            "Georgia Region 1", 
+            "Chattahoochee  GA (Rural and Urban)", 
+            "Altamaha GA (Rural and Urban)", 
+            "Region 1  2006 (Rural) - Blue Ridge NC 2002 (Urban)", 
+            "Blue Ridge Piedmont  NC 2002 (Rural and Urban)",
+            "SC Piedmont",
+            'SC Blue Ridge', 
+            'SC Sand Hills',
+            'SC Coastal'
+        ]
         
         parameters += [arcpy.Parameter(
         displayName="Flow Direction",
@@ -998,37 +1017,37 @@ class Runoff(tool):
         direction="Output")]
         parameters[-1].value = os.path.join(arcpy.env.workspace,"volflood")
         
-        # parameters += [arcpy.Parameter(
-        # displayName="Output Undeveloped Discharge",
-        # name="undevq",
-        # datatype="DERasterDataset",
-        # parameterType="Derived",
-        # direction="Output")]
-        # parameters[-1].value = os.path.join(arcpy.env.workspace,"undevQ")
+        parameters += [arcpy.Parameter(
+        displayName="Output Undeveloped Discharge",
+        name="undevq",
+        datatype="DERasterDataset",
+        parameterType="Derived",
+        direction="Output")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"undevQ")
         
-        # parameters += [arcpy.Parameter(
-        # displayName="Output Urban 2yr Discharge",
-        # name="urban2yrQ",
-        # datatype="DERasterDataset",
-        # parameterType="Derived",
-        # direction="Output")]
-        # parameters[-1].value = os.path.join(arcpy.env.workspace,"urban2yrQ")
+        parameters += [arcpy.Parameter(
+        displayName="Output Urban 2yr Discharge",
+        name="urban2yrQ",
+        datatype="DERasterDataset",
+        parameterType="Derived",
+        direction="Output")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"urban2yrQ")
         
-        # parameters += [arcpy.Parameter(
-        # displayName="Output Urban 10yr Discharge",
-        # name="urban10yrQ",
-        # datatype="DERasterDataset",
-        # parameterType="Derived",
-        # direction="Output")]
-        # parameters[-1].value = os.path.join(arcpy.env.workspace,"urban10yrQ")
+        parameters += [arcpy.Parameter(
+        displayName="Output Urban 10yr Discharge",
+        name="urban10yrQ",
+        datatype="DERasterDataset",
+        parameterType="Derived",
+        direction="Output")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"urban10yrQ")
         
-        # parameters += [arcpy.Parameter(
-        # displayName="Output Urban 25yr Discharge",
-        # name="urban25yrQ",
-        # datatype="DERasterDataset",
-        # parameterType="Derived",
-        # direction="Output")]
-        # parameters[-1].value = os.path.join(arcpy.env.workspace,"urban25yrQ")
+        parameters += [arcpy.Parameter(
+        displayName="Output Urban 25yr Discharge",
+        name="urban25yrQ",
+        datatype="DERasterDataset",
+        parameterType="Derived",
+        direction="Output")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"urban25yrQ")
         
         return parameters
 
@@ -1050,15 +1069,16 @@ class Runoff(tool):
             SoilsAtt = parameters[3].valueAsText
             stormdata = parameters[4].value
             lutFile = parameters[5].valueAsText
-            flowdir = Raster(parameters[6].valueAsText)
-            cum_da = Raster(parameters[7].valueAsText)
-            flowacc = Raster(parameters[8].valueAsText)
-            cumimpcovlake = Raster(parameters[9].valueAsText)
-            volflood = parameters[10].valueAsText
-            # undevqPath = parameters[11].valueAsText
-            # urban2yrQPath = parameters[12].valueAsText
-            # urban10yrQPath = parameters[13].valueAsText
-            # urban25yrQPath = parameters[14].valueAsText
+            Basin = parameters[6].valueAsText
+            flowdir = Raster(parameters[7].valueAsText)
+            cum_da = Raster(parameters[8].valueAsText)
+            flowacc = Raster(parameters[9].valueAsText)
+            cumimpcovlake = Raster(parameters[10].valueAsText)
+            volflood = parameters[11].valueAsText
+            undevqPath = parameters[12].valueAsText
+            urban2yrQPath = parameters[13].valueAsText
+            urban10yrQPath = parameters[14].valueAsText
+            urban25yrQPath = parameters[15].valueAsText
             
             Units = flowdir.meanCellWidth
             CurveN = None
@@ -1166,12 +1186,15 @@ class Runoff(tool):
                 
             ## These should be simple raster calculator statements in model builder, no?
             
-            # log("Calculating Undeveloped Discharge...")            
-            # UndevQ = ( Power( ( cum_da / 640 ) , 0.649 ) ) * (158 * 0.875)
-            # UndevQ.save(undevqPath)
-            # urban2yrQ = regression.urban2yrQ(hp.Basin, cum_da,cumimpcovlake)
-            # urban10yrQ = regression.urban10yrQ(hp.Basin,cum_da,cumimpcovlake)
-            # urban25yrQ = regression.urban25yrQ(hp.Basin,cum_da,cumimpcovlake)
+            log("Calculating Undeveloped Discharge...")            
+            UndevQ = regression.ruralQcp(hp.Basin, cum_da,cumimpcovlake)
+            UndevQ.save(undevqPath)
+            urban2yrQ = regression.urban2yrQ(hp.Basin, cum_da,cumimpcovlake)
+            urban2yrQ.save(urban2yrQPath)
+            urban10yrQ = regression.urban10yrQ(hp.Basin,cum_da,cumimpcovlake)
+            urban10yrQ.save(urban10yrQPath)
+            urban25yrQ = regression.urban25yrQ(hp.Basin,cum_da,cumimpcovlake)
+            urban25yrQ.save(urban25yrQPath)
             
             tool.close(self)
             
