@@ -25,6 +25,9 @@ from arcpy.sa import *
 import sys, os, time, traceback
 import numpy
 
+sys.path.append(os.path.split(__file__)[0])
+import regression
+
 logfname   = __file__+".log"
 
 #<details>    
@@ -1426,7 +1429,7 @@ class ProdTrans(tool):
         parameters[-1].value = os.path.join(arcpy.env.workspace,"impcov")
         
         parameters += [arcpy.Parameter(
-        displayName="Cumulative Impervious Cover",
+        displayName="Cumulative Impervious Cover with Lakes",
         name="cumimpcov",
         datatype="DERasterDataset",
         parameterType="Required",
