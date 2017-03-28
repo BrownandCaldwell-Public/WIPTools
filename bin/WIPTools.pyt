@@ -1006,11 +1006,11 @@ class Runoff(tool):
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Cover with Lakes",
-        name="cumimpcovlake",
+        name="cumimpcovlakes",
         datatype="DERasterDataset",
         parameterType="Required",
         direction="Input")]
-        parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovlake")
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovlakes")
         
         parameters += [arcpy.Parameter(
         displayName="Output Flood Storage",
@@ -1190,13 +1190,13 @@ class Runoff(tool):
             ## These should be simple raster calculator statements in model builder, no?
             
             log("Calculating Undeveloped Discharge...")            
-            UndevQ = regression.ruralQcp(hp.Basin, cum_da,cumimpcovlake)
+            UndevQ = regression.ruralQcp(Basin, cum_da,cumimpcovlake)
             UndevQ.save(undevqPath)
-            urban2yrQ = regression.urban2yrQ(hp.Basin, cum_da,cumimpcovlake)
+            urban2yrQ = regression.urban2yrQ(Basin, cum_da,cumimpcovlake)
             urban2yrQ.save(urban2yrQPath)
-            urban10yrQ = regression.urban10yrQ(hp.Basin,cum_da,cumimpcovlake)
+            urban10yrQ = regression.urban10yrQ(Basin,cum_da,cumimpcovlake)
             urban10yrQ.save(urban10yrQPath)
-            urban25yrQ = regression.urban25yrQ(hp.Basin,cum_da,cumimpcovlake)
+            urban25yrQ = regression.urban25yrQ(Basin,cum_da,cumimpcovlake)
             urban25yrQ.save(urban25yrQPath)
             
             tool.close(self)
@@ -1430,11 +1430,11 @@ class ProdTrans(tool):
         
         parameters += [arcpy.Parameter(
         displayName="Cumulative Impervious Cover with Lakes",
-        name="cumimpcov",
+        name="cumimpcovlakes",
         datatype="DERasterDataset",
         parameterType="Required",
         direction="Input")]
-        parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcov")
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovlakes")
         
         parameters += [arcpy.Parameter(
         displayName="Undeveloped Discharge",
