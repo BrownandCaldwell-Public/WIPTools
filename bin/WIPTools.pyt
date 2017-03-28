@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 Linking this library statically or dynamically with other modules is making a combined work based on this library. Thus, the terms and conditions of the GNU General Public License cover the whole combination.
 As a special exception, the copyright holders of this library give you permission to link this library with independent modules such as arcpy to produce an executable, regardless of the license terms of these independent modules, and to copy and distribute the resulting executable under terms of your choice, provided that you also meet, for each linked independent module, the terms and conditions of the license of that module. An independent module is a module which is not derived from or based on this library. If you modify this library, you may extend this exception to your version of the library, but you are not obliged to do so. If you do not wish to do so, delete this exception statement from your version.
 """
+
 import arcpy
 from arcpy.sa import *
 import sys, os, time, traceback
@@ -355,7 +356,7 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
         ModCumDa = ModCumDa_u * conv
     
         log("   Calculating urbanQcp...")
-        uQcp = urbanQcp(ModCumDa, Cumulative_Impervious, Basin)
+        uQcp = urbanQcp(Basin, ModCumDa, Cumulative_Impervious)
 
         return ModCumDa, thisBMPras, uQcp
 #</details> 
@@ -1608,7 +1609,7 @@ class ProdTrans(tool):
             Dettime.save(os.path.join(arcpy.env.scratchFolder, "dettime"))    
                     
             ##    usgs_calcs = Helper.USGSVars(hp.Basin)
-            uQcp = urbanQcp(cumda, Cumulative_Impervious, Basin)
+            uQcp = urbanQcp(Basin, cumda, Cumulative_Impervious)
             uQcp.save("UrbanQ1")
             # hp.saveRasterOutput(urbanQcp, "UrbanQ1")
             
@@ -2293,7 +2294,7 @@ class SingleBMP(CIP):
             Units = flowdir.meanCellWidth
             
             log("Calculate Urban/Rural ratio...")
-            urbanQcpbas = urbanQcp(Cum_da, Cumulative_Impervious, Basin)
+            urbanQcpbas = urbanQcp(Basin, Cum_da, Cumulative_Impervious)
             URratio = urbanQcpbas / Rural_1yrQ
             
             log("Add erosivity to existing production...")
