@@ -28,6 +28,7 @@ import numpy
 
 sys.path.append(os.path.split(__file__)[0])
 import regression
+from regression import urbanQcp
 
 logfname   = __file__+".log"
 
