@@ -271,11 +271,12 @@ def GetTempRasterPath(outputname):
     return newname
     
 def SetPIDs(vec):
-    if ".mdb" in vec:
+    if ".mdb" in vec.lower() or ".gdb" in vec.lower():
         OID = "OBJECTID"
-    else:
+    elif vec.lower().endswith(".shp"):
         OID = "FID"
-        
+    else:
+        raise Exception("Can not determine OID field for " + vec)
 
     if not 'PID' in ListofFields(vec):
         log( "Adding PID field" )
