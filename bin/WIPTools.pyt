@@ -871,7 +871,7 @@ class Runoff(tool):
         datatype="DERasterDataset",
         parameterType="Derived",
         direction="Output")]
-        parameters[-1].value = os.path.join(arcpy.env.workspace,"volflood")
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"wqv")
         
         parameters += [arcpy.Parameter(
         displayName="Output Undeveloped Discharge",
