@@ -1755,7 +1755,13 @@ class Baseline(tool):
         direction="Output")]
         parameters[-1].parameterDependencies = [parameters[4].name]
         
-        
+        parameters += [arcpy.Parameter(
+        displayName="Output Yield Vector",
+        name="yield",
+        datatype="GPFeatureLayer",
+        parameterType="Derived",
+        direction="Output")]
+        parameters[-1].parameterDependencies = [parameters[4].name]
         
         return parameters
 
