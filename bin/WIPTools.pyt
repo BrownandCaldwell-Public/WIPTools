@@ -2436,7 +2436,7 @@ class SingleBMP(CIP):
                         URratio = this_ds / Rural_1yrQ
                         URratio.save(os.path.join(arcpy.env.scratchFolder,"urratio"))
                         
-                        TSSP_ero = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster)
+                        TSSP_ero = CalcErosivity(defEro, TSSprod, pointsrc, URratio, Stream_Raster)
                         # TSSP_ero.save(os.path.join(arcpy.env.scratchFolder,"tssp_ero"))
                         
                         log("  %s reduction..." % pn)
@@ -2495,7 +2495,7 @@ class SingleBMP(CIP):
                     ThisBMPmask.save(os.path.join(arcpy.env.scratchFolder,"ThisBMPmask"))
                     
                     log("Calculate reduction...")
-                    streamprod = (bmp_peff/ 100) * existingTSSprod * ThisBMPmask * Power(URratio, 1.5)
+                    streamprod = (bmp_peff/ 100) * TSSprod * ThisBMPmask * Power(URratio, 1.5)
                     streamprod.save(os.path.join(arcpy.env.scratchFolder,"streamprod"))
                     
                     log("Reclassify flowdirection to find straight paths...")
