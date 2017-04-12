@@ -2372,7 +2372,7 @@ class SingleBMP(CIP):
             URratio = urbanQcpbas / Rural_1yrQ
             
             log("Add erosivity to existing production...")
-            TSSP_ero_ext = CalcErosivity(defEro, existingTSSprod, pointsrc, URratio, Stream_Raster) 
+            TSSP_ero_ext = CalcErosivity(defEro, TSSprod, pointsrc, URratio, Stream_Raster) 
             # TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder,"EroExt"))
             
             # log("Checking for input BMPs in your area...")    
