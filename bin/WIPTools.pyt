@@ -1846,9 +1846,9 @@ class Baseline(tool):
             TSSYieldcl = Int(RoundUp( RoundDown( Streams_nd * TSSYield * 20000 ) / 2 ))
             
             log("Vectorize...")
-            StreamToFeature(TSSYieldcl, flowdir, TSSYldvec, "NO_SIMPLIFY")
+            StreamToFeature(TSSYieldcl, flowdir, TSSYldvecPath, "NO_SIMPLIFY")
             
-            ConvertGRIDCODEatt(TSSYldvec)
+            ConvertGRIDCODEatt(TSSYldvecPath)
                 
             if summary_pt_input:
                 summary_pts = os.path.join(arcpy.env.workspace, "summarypts")
