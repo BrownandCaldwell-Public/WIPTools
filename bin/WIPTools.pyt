@@ -1797,14 +1797,14 @@ class Baseline(tool):
             bmp_type = parameters[1].valueAsText
             bmp_eff = parameters[2].valueAsText
             summary_pt_input = parameters[3].valueAsText
-            TSSProd = parameters[4].valueAsText
-            K = parameters[5].valueAsText
+            TSSProd = Raster(parameters[4].valueAsText)
+            K = Raster(parameters[5].valueAsText)
             TSSLoadOutputPath = parameters[6].valueAsText
             TSSYieldPath = parameters[7].valueAsText
             TSSYldvecPath = parameters[8].valueAsText
-            flowdir = parameters[9].valueAsText
-            Cum_da = parameters[10].valueAsText
-            Streams_nd = parameters[11].valueAsText
+            flowdir = Raster(parameters[9].valueAsText)
+            Cum_da = Raster(parameters[10].valueAsText)
+            Streams_nd = Raster(parameters[11].valueAsText)
             
             streams = RemoveNulls(Streams_nd)
             Units = flowdir.meanCellWidth
