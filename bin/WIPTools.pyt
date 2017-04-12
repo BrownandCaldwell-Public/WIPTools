@@ -2367,6 +2367,12 @@ class SingleBMP(CIP):
             
             Units = flowdir.meanCellWidth
             
+            log("Clipping BMP points to work area (or mask)...")
+            vecmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
+            BMPpts = os.path.join(arcpy.env.scratchFolder, "BMPpts.shp")
+            arcpy.RasterToPolygon_conversion(arcpy.env.mask, vecmask, "SIMPLIFY", "Value")
+            arcpy.Clip_analysis(bmp_noclip, vecmask, BMPpts)
+            
             log("Calculate Urban/Rural ratio...")
             urbanQcpbas = urbanQcp(Basin, Cum_da, Cumulative_Impervious)
             URratio = urbanQcpbas / Rural_1yrQ
