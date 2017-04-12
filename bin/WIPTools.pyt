@@ -1684,21 +1684,6 @@ class Baseline(tool):
     def getParameterInfo(self):
     
         parameters = []
-        
-        parameters += [arcpy.Parameter(
-        displayName="Use Production developed for Existing Landuse",
-        name="existingLU",
-        datatype="GPBoolean",
-        parameterType="Optional",
-        direction="Input")]
-        
-        parameters += [arcpy.Parameter(
-        displayName="Use Production developed for Future Landuse",
-        name="futureLU",
-        datatype="GPBoolean",
-        parameterType="Optional",
-        direction="Input")]
-        
         parameters += [arcpy.Parameter(
         displayName="Project Points",
         name="bmppts",
@@ -1732,18 +1717,24 @@ class Baseline(tool):
         parameters[-1].filter.list = ["Point"]
         
         parameters += [arcpy.Parameter(
-        displayName="Summary Points output field ",
-        name="summaryptsfield",
-        datatype="Field",
+        displayName="Input Combined Production",
+        name="tssprod",
+        datatype="DERasterDataset",
         parameterType="Required",
         direction="Input")]
-        parameters[-1].parameterDependencies = [parameters[-2].name]
+        
+        parameters += [arcpy.Parameter(
+        displayName="Input K Die-off",
+        name="K",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
         
         parameters += [arcpy.Parameter(
         displayName="Output Load",
         name="load",
-        datatype="GPRasterDataLayer",
-        parameterType="Derived",
+        datatype="DERasterDataset",
+        parameterType="Required",
         direction="Output")]
         parameters[-1].parameterDependencies = [parameters[4].name]
         
@@ -1751,26 +1742,50 @@ class Baseline(tool):
         displayName="Output Yield",
         name="yield",
         datatype="GPFeatureLayer",
-        parameterType="Derived",
+        parameterType="Required",
         direction="Output")]
         parameters[-1].parameterDependencies = [parameters[4].name]
         
         parameters += [arcpy.Parameter(
         displayName="Output Yield Vector",
-        name="yield",
+        name="yieldvec",
         datatype="GPFeatureLayer",
-        parameterType="Derived",
+        parameterType="Required",
         direction="Output")]
         parameters[-1].parameterDependencies = [parameters[4].name]
+        
+        parameters += [arcpy.Parameter(
+        displayName="Flow Direction",
+        name="flowdir",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"flowdir")
+        
+        parameters += [arcpy.Parameter(
+        displayName="Cumulative Drainage Area",
+        name="cumda",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"Cumda")
+        
+        parameters += [arcpy.Parameter(
+        displayName="Streams",
+        name="streams",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"streams")
         
         return parameters
 
     def updateParameters(self, parameters):
-        if parameters[2].value:
-            fields = arcpy.ListFields(parameters[2].valueAsText)
+        if parameters[0].value:
+            fields = arcpy.ListFields(parameters[0].valueAsText)
             l = [f.name for f in fields]
-            parameters[3].filter.list = l
-            parameters[4].filter.list = l
+            parameters[1].filter.list = l
+            parameters[2].filter.list = l
         return
 
     def execute(self, parameters, messages):
@@ -1778,23 +1793,19 @@ class Baseline(tool):
             tool.execute(self)
             log("\nBaseline run started at %s" % time.asctime())
             
-            bmp_noclip = parameters[2].valueAsText
-            bmp_type = parameters[3].valueAsText
-            bmp_eff = parameters[4].valueAsText
-            summary_pt_input = parameters[5].valueAsText
+            bmp_noclip = parameters[0].valueAsText
+            bmp_type = parameters[1].valueAsText
+            bmp_eff = parameters[2].valueAsText
+            summary_pt_input = parameters[3].valueAsText
+            TSSProd = parameters[4].valueAsText
+            K = parameters[5].valueAsText
+            TSSLoadOutputPath = parameters[6].valueAsText
+            TSSYieldPath = parameters[7].valueAsText
+            TSSYldvecPath = parameters[8].valueAsText
+            flowdir = parameters[9].valueAsText
+            Cum_da = parameters[10].valueAsText
+            Streams_nd = parameters[11].valueAsText
             
-            landuses = []
-            use_existing = parameters[0].value
-            use_future = parameters[1].value
-            if use_existing:
-                landuses.append("E")
-            if use_future:
-                landuses.append("F")
-            if not landuses: raise Exception("You must select at least one type of landuse")
-            
-            Cum_da = Raster(os.path.join(arcpy.env.workspace, "cumda"))
-            flowdir = Raster(os.path.join(arcpy.env.workspace, "flowdir"))
-            Streams_nd = Raster(os.path.join(arcpy.env.workspace, "streams"))
             streams = RemoveNulls(Streams_nd)
             Units = flowdir.meanCellWidth
             
@@ -1809,55 +1820,41 @@ class Baseline(tool):
             count = GetSubset(BMPpts, ExBMPpts, " \"%s\" = 'BMP' " % bmp_type)
             
             if count < 1:
-                raise Exception("No BMP points, stopping")
+                raise Exception("No BMP points in project area")
+
+            log("Convert BMPs to Raster...")
+            BMPs = arcpy.FeatureToRaster_conversion(ExBMPpts, bmp_eff, os.path.join(arcpy.env.scratchFolder,"ExBMPpts"), flowdir)
             
+            log("Combine decay function with BMP reduction")
+            bmptemp = RemoveNulls(BMPs)
+            weightred = 1 - ( K * ( 1 - (bmptemp / 100.0 ) ) ) * arcpy.env.mask
+            weightred.save(os.path.join(arcpy.env.scratchFolder,"weightred"))
+            
+            log("Calculate Reduction...")
+            Existingtss = BMP2DA(flowdir, "bmp2da", TSSProd, weightred)
+            
+            log("Clip...")
+            TSSLoadOutput = Existingtss * arcpy.env.mask
+            TSSLoadOutput.save(TSSLoadOutputPath)
+            
+            log("Calculate Yield...")
+            TSSYield = TSSLoadOutput / Cum_da
+            TSSYield.save(TSSYieldPath)
+            
+            log("Clip to streams...")
+            # and round
+            TSSYieldcl = Int(RoundUp( RoundDown( Streams_nd * TSSYield * 20000 ) / 2 ))
+            
+            log("Vectorize...")
+            StreamToFeature(TSSYieldcl, flowdir, TSSYldvec, "NO_SIMPLIFY")
+            
+            ConvertGRIDCODEatt(TSSYldvec)
+                
             if summary_pt_input:
                 summary_pts = os.path.join(arcpy.env.workspace, "summarypts")
                 arcpy.Clip_analysis(summary_pt_input, vecmask, summary_pts)
                 SetPIDs(summary_pts)
-                
-            pn = GetAlias(bmp_eff)[:10]
-            for LU in landuses:
-                TSSProd = Raster(os.path.join(arcpy.env.workspace, "q" + LU + pn)) * arcpy.env.mask
-                
-                K = os.path.join(arcpy.env.workspace, "K" + LU + pn)
-                
-                TSSLoadOutput = (os.path.join(arcpy.env.workspace, "L" + LU + pn))
-                TSSYield = (os.path.join(arcpy.env.workspace, "Y" +LU + pn))
-                TSSYldvec = (os.path.join(arcpy.env.workspace, pn + LU+ "yield"))
-                
-                log("Convert BMPs to Raster...")
-                BMPs = arcpy.FeatureToRaster_conversion(ExBMPpts, bmp_eff, os.path.join(arcpy.env.scratchFolder,"b" + LU + pn), flowdir)
-                
-                log("Combine decay function with BMP reduction")
-                bmptemp = RemoveNulls(BMPs)
-                weightred = 1 - ( K * ( 1 - (bmptemp / 100.0 ) ) ) * arcpy.env.mask
-                weightred.save(os.path.join(arcpy.env.scratchFolder,"weightred"))
-                
-                log("Calculate Reduction...")
-                Existingtss = BMP2DA(flowdir, "bmp2da", TSSProd, weightred)
-                
-                log("Clip...")
-                TSSLoadOutput = Existingtss * arcpy.env.mask
-                TSSLoadOutput.save("L" + LU + pn)
-                
-                log("Calculate Yield...")
-                TSSYield = TSSLoadOutput / Cum_da
-                TSSYield.save("Y" +LU + pn)
-                
-                log("Clip to streams...")
-                # and round
-                TSSYieldcl = Int(RoundUp( RoundDown( Streams_nd * TSSYield * 20000 ) / 2 ))
-                
-                log("Vectorize...")
-                TSSYldvec = pn + LU+ "yield"
-                StreamToFeature(TSSYieldcl, flowdir, TSSYldvec, "NO_SIMPLIFY")
-                
-                ConvertGRIDCODEatt(TSSYldvec)
-                    
-                if summary_pt_input:
-                    TSSLoadOutput = Raster(os.path.join(arcpy.env.workspace, "L" + LU + pn))
-                    Summarize(TSSLoadOutput, summary_pts)        
+                Summarize(TSSLoadOutput, summary_pts)        
             
             tool.close(self)
             
@@ -1876,24 +1873,6 @@ class CIP(tool):
     def getParameterInfo(self):
     
         parameters = []
-        
-        parameters += [
-        arcpy.Parameter(
-        displayName="Scenario Name",
-        name="scenarioName",
-        datatype="GPString",
-        parameterType="Required",
-        direction="Input")]
-        
-        parameters += [
-        arcpy.Parameter(
-        displayName="Landuse",
-        name="LU",
-        datatype="String",
-        parameterType="Required",
-        direction="Input")]
-        parameters[-1].filter.type = "ValueList"
-        parameters[-1].filter.list = ["Existing", "Future"]
         
         parameters += [
         arcpy.Parameter(
@@ -2003,7 +1982,7 @@ class CIP(tool):
             'SC Sand Hills',
             'SC Coastal'
         ]
-
+        
         parameters += [
         arcpy.Parameter(
         displayName="Summary Points",
@@ -2012,9 +1991,98 @@ class CIP(tool):
         parameterType="Optional",
         direction="Input")]
         parameters[-1].filter.list = ["Point"]
-
+        
+        parameters += [arcpy.Parameter(
+        displayName="Input Stream Production",
+        name="q",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        
+        parameters += [arcpy.Parameter(
+        displayName="Input Combined Production",
+        name="p",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        
+        parameters += [arcpy.Parameter(
+        displayName="Input K Die-off",
+        name="K",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        
+        parameters += [arcpy.Parameter(
+        displayName="Point Source Input",
+        name="pt",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        
+        parameters += [arcpy.Parameter(
+        displayName="Output Load",
+        name="load",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Output")]
+        
+        parameters += [arcpy.Parameter(
+        displayName="Output Yield",
+        name="yield",
+        datatype="GPFeatureLayer",
+        parameterType="Required",
+        direction="Output")]
+        
+        parameters += [arcpy.Parameter(
+        displayName="Output Yield Vector",
+        name="yieldvec",
+        datatype="GPFeatureLayer",
+        parameterType="Required",
+        direction="Output")]
+        
+        parameters += [arcpy.Parameter(
+        displayName="Flow Direction",
+        name="flowdir",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"flowdir")
+        
+        parameters += [arcpy.Parameter(
+        displayName="Cumulative Drainage Area",
+        name="cumda",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"Cumda")
+        
+        parameters += [arcpy.Parameter(
+        displayName="Streams",
+        name="streams",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"streams")
+        
+        parameters += [arcpy.Parameter(
+        displayName="Cumulative Impervious Area (including Lakes)",
+        name="cumimpcov",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"cumimpcovlakes")
+        
+        parameters += [arcpy.Parameter(
+        displayName="Rural 1-yr Q",
+        name="Rural1yrQ",
+        datatype="DERasterDataset",
+        parameterType="Required",
+        direction="Input")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"UndevQ")
+        
         return parameters
-
+        
     def updateParameters(self, parameters, bmpptsfield=2):
         if parameters[bmpptsfield].value:
             fields = arcpy.ListFields(parameters[bmpptsfield].valueAsText)
@@ -2026,42 +2094,53 @@ class CIP(tool):
     def execute(self, parameters, messages):
         try:
             tool.execute(self)
-            ScenName = parameters[0].valueAsText
-            LU = parameters[1].valueAsText.upper()[0]
-            bmp_noclip = parameters[2].valueAsText
-            bmp_type = parameters[3].valueAsText
-            bmp_CIPproj = parameters[4].valueAsText
-            bmp_Ex1yr = parameters[5].valueAsText
-            bmp_Prop1yr = parameters[6].valueAsText
-            streamLinearRed = parameters[10].valueAsText #optional
-            bmp_eeff = parameters[8].valueAsText
-            bmp_peff = parameters[9].valueAsText
-            StreamLength_fld = parameters[7].valueAsText
-            defEro = parameters[11].value
-            Basin = parameters[12].valueAsText
-            summary_pt_input = parameters[13].valueAsText
             
-            log("\nCIP run %s started at %s" % (ScenName, time.asctime()))
+            bmp_noclip = parameters[0].valueAsText
+            bmp_type = parameters[1].valueAsText
+            bmp_CIPproj = parameters[2].valueAsText
+            bmp_Ex1yr = parameters[3].valueAsText
+            bmp_Prop1yr = parameters[4].valueAsText
+            streamLinearRed = parameters[5].valueAsText #optional
+            bmp_eeff = parameters[6].valueAsText
+            bmp_peff = parameters[7].valueAsText
+            StreamLength_fld = parameters[8].valueAsText
+            defEro = parameters[9].value
+            Basin = parameters[10].valueAsText
+            summary_pt_input = parameters[11].valueAsText
+            
+            
+            TSSprod = Raster(parameters[12].valueAsText)
+            TSSP_ero_ext = Raster(parameters[13].valueAsText)
+            K = Raster(parameters[14].valueAsText)
+            pointsrc = parameters[15].valueAsText
+            if pointsrc:
+                pointsrc = Raster(parameters[15].valueAsText)
+            
+            TSSLoadOutputPath = parameters[16].valueAsText
+            CIPTSSYldPath = parameters[17].valueAsText
+            CIPTSSYldVecPath = parameters[18].valueAsText
+            
+            flowdir = Raster(parameters[18].valueAsText)
+            Cum_da = Raster(parameters[18].valueAsText)
+            Streams_nd = Raster(parameters[18].valueAsText)
+            Stream_Raster = RemoveNulls(Streams_nd)
+            
+            Cumulative_Impervious = Raster(parameters[18].valueAsText)
+            Rural_1yrQ = Raster(parameters[18].valueAsText)
+            URratio_vec = os.path.join(arcpy.env.scratchFolder, "URratio_CIP")
+            
+            log("\nCIP run started at %s" % (time.asctime()))
             
             pn = GetAlias(bmp_eeff)[:10]
+            Units = flowdir.meanCellWidth
             
-            gdb = "CIP_%s.mdb" % ScenName.replace(" ", "_")
-            arcpy.CreatePersonalGDB_management(os.path.split(arcpy.env.workspace)[0], gdb)
-            cipWorkspace = os.path.join(os.path.split(arcpy.env.workspace)[0], gdb)
-                
             vectmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
             BMPpts = os.path.join(arcpy.env.scratchFolder, "BMPpts.shp")
             arcpy.RasterToPolygon_conversion(arcpy.env.mask, vectmask, "SIMPLIFY", "Value")
             arcpy.Clip_analysis(bmp_noclip, vectmask, BMPpts)
             
-            Cum_da = ExtractByMask("cumda", arcpy.env.mask) 
-            flowdir = ExtractByMask("flowdir", arcpy.env.mask) 
-            Streams_nd = ExtractByMask("streams", arcpy.env.mask) 
-            Stream_Raster = RemoveNulls(Streams_nd)
-            Units = flowdir.meanCellWidth
-            
             if summary_pt_input:
-                summary_pts = os.path.join(cipWorkspace, "summaryptsCIP")
+                summary_pts = os.path.join(arcpy.env.workspace, "summaryptsCIP")
                 arcpy.Clip_analysis(summary_pt_input, vectmask, summary_pts)
                 SetPIDs(summary_pts)
             
@@ -2087,25 +2166,16 @@ class CIP(tool):
             CIPBMPs = os.path.join(arcpy.env.scratchFolder, "CIPBMPpts.shp")
             cipbmps_found = GetSubset(CIPBMPpts, CIPBMPs, " \"%s\" = 'BMP' OR \"%s\" = 'New BMP' " % (bmp_type, bmp_type))
 
-            TSSprod = Raster(os.path.join(arcpy.env.workspace, "p" + LU + pn))
-            K = Raster(os.path.join(arcpy.env.workspace, "K" + LU + pn))
-            
-            pointsrc = ""
-            if "pt" + LU + pn in arcpy.ListRasters():
-                log("   Found point source raster %s" % ("pt" + LU + pn))
-                pointsrc = Raster(os.path.join(arcpy.env.workspace, "pt" + LU + pn))
-            else:
-                log("   Did not find point source raster %s in %s" % ("pt" + LU + pn, arcpy.ListRasters()))
                 
             if CP_found > 0:
-                Cumulative_Impervious = Raster(os.path.join(arcpy.env.workspace, "cumimpcovlake") )
+                
                 
                 CumMod_da, RasBMPpts2, uQcp = ChannelProtection(Basin, ChanBMPpts, bmp_Prop1yr, flowdir, Cum_da, Cumulative_Impervious) 
                 
                 # uQcp = urbanQcp(CumMod_da, Cumulative_Impervious, Basin)
                 
                 log("Calculate Urban/Rural ratio...")
-                Rural_1yrQ = Raster(os.path.join(arcpy.env.workspace, "UndevQ"))
+                
                 URratio = uQcp / Rural_1yrQ
                 
                 log("Add erosivity to production...")# % param)
@@ -2115,7 +2185,6 @@ class CIP(tool):
                 # and round
                 UrbRurratc = Int(RoundUp( RoundDown( Streams_nd * URratio * 20000 ) / 2 ))
                 
-                URratio_vec = os.path.join(cipWorkspace, LU + "rv" + pn)#
                 log("Vectorize...")
                 StreamToFeature(UrbRurratc, flowdir, URratio_vec, "NO_SIMPLIFY")
                 ConvertGRIDCODEatt(URratio_vec)
@@ -2124,7 +2193,7 @@ class CIP(tool):
                 log("  Did not find any Channel Protection Projects in the study area, skipping this part")
                 CumMod_da = Cum_da
                 URratio = os.path.join(arcpy.env.workspace, "UrbRurratio")
-                TSSP_ero_ext = Raster(os.path.join(arcpy.env.workspace, "q" + LU + pn)) * arcpy.env.mask
+                
             
             if SR_found < 1:
                 log("  Did not find any Stream Restoration Projects in the study area, skipping this part")
@@ -2134,7 +2203,7 @@ class CIP(tool):
                 len = arcpy.FeatureToRaster_conversion(strBMPs2, StreamLength_fld, os.path.join(arcpy.env.scratchFolder, "len.tif"), flowdir)
                 BMPlengths = Float(len)
                  
-                lengths = AttExtract(BMPlengths, flowdir, Stream_Raster, LU+pn+'len.tif', Units)
+                lengths = AttExtract(BMPlengths, flowdir, Stream_Raster, pn+'len.tif', Units)
                 
                 log("Remove background values...")
                 lengthsmask = Reclassify(lengths, "VALUE", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
@@ -2144,7 +2213,7 @@ class CIP(tool):
                 arcpy.FeatureToRaster_conversion(strBMPs2, bmp_peff, srp, flowdir)
                 strBMPs3 = Float(Raster(srp))
                 
-                PropEffnd = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn+'attx.tif')
+                PropEffnd = AttExtract(strBMPs3, flowdir, Stream_Raster, pn+'attx.tif')
                 
                 log("Remove background values...")
                 PropEff = RemoveNulls(PropEffnd)
@@ -2163,7 +2232,7 @@ class CIP(tool):
                     strBMPs3 = Float(slpf)
                     
                     log("Stream reduction per length...")
-                    srlength = AttExtract(strBMPs3, flowdir, Stream_Raster, LU+pn[0:3]+'srLen')
+                    srlength = AttExtract(strBMPs3, flowdir, Stream_Raster, pn[0:5]+'srLen')
                     
                     log("Remove background values...")
                     srlengthm = RemoveNulls(srlength)
@@ -2217,26 +2286,25 @@ class CIP(tool):
             
             log("Clip...")
             TSSLoadOutput = TSSLoadcip * arcpy.env.mask
-            TSSLoadOutput.save(os.path.join(cipWorkspace, "L" + LU + pn))
+            TSSLoadOutput.save(TSSLoadOutputPath)
             
             log("Calculate Yield...")
-            CIPTSSYield = TSSLoadcip / Cum_da
-            CIPTSSYield.save(os.path.join(cipWorkspace, "Y" + LU + pn))
+            CIPYield = TSSLoadcip / Cum_da
+            CIPYield.save(CIPYldPath)
             
             log("Clip to streams...")
             # and round
-            TSSYield_cl = Int(RoundUp( RoundDown( Streams_nd * CIPTSSYield * 20000 ) / 2 ))
-            TSSYield_cl.save(os.path.join(cipWorkspace, LU + "y2" + pn))
+            TSSYield_cl = Int(RoundUp( RoundDown( Streams_nd * CIPYield * 20000 ) / 2 ))
+            TSSYield_cl.save(os.path.join(arcpy.env.scratchFolder, "YieldStream"))
             
-            TSSYldvec = os.path.join(cipWorkspace, LU + "yV" + pn)#
             log("Vectorize...")
-            StreamToFeature(TSSYield_cl, flowdir, TSSYldvec, "NO_SIMPLIFY")
+            StreamToFeature(TSSYield_cl, flowdir, CIPYldVecPath, "NO_SIMPLIFY")
             
-            ConvertGRIDCODEatt(TSSYldvec)
+            ConvertGRIDCODEatt(CIPYldVecPath)
      
             if summary_pt_input:
                 log("Summarizing results...")
-                alias = LU + " " + pn + " Load"
+                alias = pn + " Load"
                 Summarize(TSSLoadOutput, summary_pts, alias)    
             
             tool.close(self)
@@ -2254,51 +2322,49 @@ class SingleBMP(CIP):
         super(tool, self).__del__()
         
     def getParameterInfo(self):        
-        parameters = super(SingleBMP, self).getParameterInfo()[1:-1]
+        parameters = super(SingleBMP, self).getParameterInfo()
         return parameters
         
     def updateParameters(self, parameters):
-        super(SingleBMP, self).updateParameters(parameters, 1)
+        super(SingleBMP, self).updateParameters(parameters, 0)
     
     def execute(self, parameters, messages):
         try:
             tool.execute(self)
-            LU = parameters[0].valueAsText.upper()[0]
-            bmp_noclip = parameters[1].valueAsText
-            bmp_type_fld = parameters[2].valueAsText
-            bmp_CIPproj_fld = parameters[3].valueAsText
-            bmp_Ex1yr_fld = parameters[4].valueAsText
-            bmp_Prop1yr_fld = parameters[5].valueAsText
-            streamLinearRed = parameters[9].valueAsText # optional
-            bmp_eeff_fld = parameters[7].valueAsText
-            bmp_peff_fld = parameters[8].valueAsText
-            StreamLength_fld = parameters[6].valueAsText
-            defEro = parameters[10].value
-            Basin = parameters[11].valueAsText
+            bmp_noclip = parameters[0].valueAsText
+            bmp_type = parameters[1].valueAsText
+            bmp_CIPproj = parameters[2].valueAsText
+            bmp_Ex1yr = parameters[3].valueAsText
+            bmp_Prop1yr = parameters[4].valueAsText
+            streamLinearRed = parameters[5].valueAsText #optional
+            bmp_eeff = parameters[6].valueAsText
+            bmp_peff = parameters[7].valueAsText
+            StreamLength_fld = parameters[8].valueAsText
+            defEro = parameters[9].value
+            Basin = parameters[10].valueAsText
+            summary_pt_input = parameters[11].valueAsText
             
-            log("\nSingleBMP run started at %s" % (time.asctime()))
             
-            OIDfield = arcpy.Describe(bmp_noclip).OIDFieldName
-            pn = GetAlias(bmp_eeff_fld)[:10]
-            SetPIDs(bmp_noclip)
+            TSSprod = Raster(parameters[12].valueAsText)
+            TSSP_ero_ext = Raster(parameters[13].valueAsText)
+            K = Raster(parameters[14].valueAsText)
+            pointsrc = parameters[15].valueAsText
+            if pointsrc:
+                pointsrc = Raster(parameters[15].valueAsText)
             
-            vectmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
-            BMPpts = os.path.join(arcpy.env.scratchFolder, "BMPpts.shp")
-            arcpy.RasterToPolygon_conversion(arcpy.env.mask, vectmask, "SIMPLIFY", "Value")
-            arcpy.Clip_analysis(bmp_noclip, vectmask, BMPpts)
-            wtredBMPs = os.path.join(arcpy.env.scratchFolder, "wtredBMPs")
+            TSSLoadOutputPath = parameters[16].valueAsText
+            CIPTSSYldPath = parameters[17].valueAsText
+            CIPTSSYldVecPath = parameters[18].valueAsText
             
-            Cum_da = ExtractByMask("cumda", arcpy.env.mask) 
-            flowdir = ExtractByMask("flowdir", arcpy.env.mask) 
-            Streams_nd = ExtractByMask("streams", arcpy.env.mask) 
+            flowdir = Raster(parameters[18].valueAsText)
+            Cum_da = Raster(parameters[18].valueAsText)
+            Streams_nd = Raster(parameters[18].valueAsText)
             Stream_Raster = RemoveNulls(Streams_nd)
-            Rural_1yrQ = ExtractByMask("UndevQ", arcpy.env.mask) 
-            Cumulative_Impervious = ExtractByMask("cumimpcovlake", arcpy.env.mask) 
-            try:
-                pointsrc = ExtractByMask("pt" + pn)
-            except:
-                pointsrc = None
-            existingTSSprod = Raster("p" + LU + pn)
+            
+            Cumulative_Impervious = Raster(parameters[18].valueAsText)
+            Rural_1yrQ = Raster(parameters[18].valueAsText)
+            URratio_vec = os.path.join(arcpy.env.scratchFolder, "URratio_Sin")
+            
             Units = flowdir.meanCellWidth
             
             log("Calculate Urban/Rural ratio...")
