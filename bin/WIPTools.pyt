@@ -2356,13 +2356,13 @@ class SingleBMP(CIP):
             CIPTSSYldPath = parameters[17].valueAsText
             CIPTSSYldVecPath = parameters[18].valueAsText
             
-            flowdir = Raster(parameters[18].valueAsText)
-            Cum_da = Raster(parameters[18].valueAsText)
-            Streams_nd = Raster(parameters[18].valueAsText)
+            flowdir = Raster(parameters[19].valueAsText)
+            Cum_da = Raster(parameters[20].valueAsText)
+            Streams_nd = Raster(parameters[21].valueAsText)
             Stream_Raster = RemoveNulls(Streams_nd)
             
-            Cumulative_Impervious = Raster(parameters[18].valueAsText)
-            Rural_1yrQ = Raster(parameters[18].valueAsText)
+            Cumulative_Impervious = Raster(parameters[22].valueAsText)
+            Rural_1yrQ = Raster(parameters[23].valueAsText)
             URratio_vec = os.path.join(arcpy.env.scratchFolder, "URratio_Sin")
             
             Units = flowdir.meanCellWidth
