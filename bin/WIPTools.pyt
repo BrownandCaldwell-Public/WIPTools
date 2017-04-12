@@ -1741,7 +1741,7 @@ class Baseline(tool):
         parameters += [arcpy.Parameter(
         displayName="Output Yield",
         name="yield",
-        datatype="GPFeatureLayer",
+        datatype="DERasterDataset",
         parameterType="Required",
         direction="Output")]
         parameters[-1].parameterDependencies = [parameters[4].name]
