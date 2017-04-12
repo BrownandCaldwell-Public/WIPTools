@@ -2083,7 +2083,7 @@ class CIP(tool):
         
         return parameters
         
-    def updateParameters(self, parameters, bmpptsfield=2):
+    def updateParameters(self, parameters, bmpptsfield=0):
         if parameters[bmpptsfield].value:
             fields = arcpy.ListFields(parameters[bmpptsfield].valueAsText)
             l = [f.name for f in fields]
