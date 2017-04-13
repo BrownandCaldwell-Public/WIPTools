@@ -2332,13 +2332,13 @@ class SingleBMP(CIP):
         try:
             tool.execute(self)
             bmp_noclip = parameters[0].valueAsText
-            bmp_type = parameters[1].valueAsText
-            bmp_CIPproj = parameters[2].valueAsText
-            bmp_Ex1yr = parameters[3].valueAsText
-            bmp_Prop1yr = parameters[4].valueAsText
-            streamLinearRed = parameters[5].valueAsText #optional
-            bmp_eeff = parameters[6].valueAsText
-            bmp_peff = parameters[7].valueAsText
+            bmp_type_fld = parameters[1].valueAsText
+            bmp_CIPproj_fld = parameters[2].valueAsText
+            bmp_Ex1yr_fld = parameters[3].valueAsText
+            bmp_Prop1yr_fld = parameters[4].valueAsText
+            streamLinearRed_fld = parameters[5].valueAsText #optional
+            bmp_eeff_fld = parameters[6].valueAsText
+            bmp_peff_fld = parameters[7].valueAsText
             StreamLength_fld = parameters[8].valueAsText
             defEro = parameters[9].value
             Basin = parameters[10].valueAsText
