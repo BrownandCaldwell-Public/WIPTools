@@ -2117,8 +2117,8 @@ class CIP(tool):
                 pointsrc = Raster(parameters[15].valueAsText)
             
             TSSLoadOutputPath = parameters[16].valueAsText
-            CIPTSSYldPath = parameters[17].valueAsText
-            CIPTSSYldVecPath = parameters[18].valueAsText
+            CIPYldPath = parameters[17].valueAsText
+            CIPYldVecPath = parameters[18].valueAsText
             
             flowdir = Raster(parameters[19].valueAsText)
             Cum_da = Raster(parameters[20].valueAsText)
