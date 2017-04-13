@@ -2412,12 +2412,12 @@ class SingleBMP(CIP):
                 SinBMPmask = Reclassify(SingleBMP, "VALUE", "NoData 0; 0.001 100000 1", "DATA")
                 SinBMPmask.save(os.path.join(arcpy.env.scratchFolder,"SinBMPmask"))
                 
-                K = os.path.join(arcpy.env.scratchFolder, "K" + pn)    
+                # K = os.path.join(arcpy.env.scratchFolder, "K" + pn)    
                 sum, chanp_red, washoff_red = 0, 0, 0
                 
                 bmp_eeff = float(BMProw.getValue(bmp_eeff_fld))
                 bmp_peff = float(BMProw.getValue(bmp_peff_fld))
-                stream_red_per_ft = float(BMProw.getValue(streamLinearRed)) 
+                stream_red_per_ft = float(BMProw.getValue(streamLinearRed_fld)) 
                 log("  Found existing bmp efficiency of %s, proposed bmp efficiency of %s, and stream reduction of %s for PID %s" % (bmp_eeff, bmp_peff, stream_red_per_ft, BMP_FID))
                 
                 if bmp_type.lower() in ['bmp', 'new bmp']:
