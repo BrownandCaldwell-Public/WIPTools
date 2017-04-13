@@ -2489,7 +2489,7 @@ class SingleBMP(CIP):
                         WQ = washoff_red
                         
                     sum = chanp_red + washoff_red
-                    SetAtt(BMP_FID, pn[:4] + "red" + LU, sum, bmp_noclip)
+                    SetAtt(BMP_FID, pn[:4] + "red", sum, bmp_noclip)
                 
                 if bmp_type.lower() in ['stream restoration']: 
                     log("Convert Stream Lengths to Raster...")
@@ -2525,7 +2525,7 @@ class SingleBMP(CIP):
                     log( "  Stream reduction = %s" % stream_red )
                     
                     log("Writing attributes")
-                    SetAtt(BMP_FID, pn[:4] + "red" + LU, stream_red, bmp_noclip)
+                    SetAtt(BMP_FID, pn[:4] + "red", stream_red, bmp_noclip)
             
                 count += 1   
             
