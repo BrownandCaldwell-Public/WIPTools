@@ -2366,6 +2366,7 @@ class SingleBMP(CIP):
             URratio_vec = os.path.join(arcpy.env.scratchFolder, "URratio_Sin")
             
             Units = flowdir.meanCellWidth
+            pn = GetAlias(bmp_eeff_fld)[:10]
             
             log("Clipping BMP points to work area (or mask)...")
             vecmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
