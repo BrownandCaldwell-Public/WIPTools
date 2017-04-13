@@ -2386,7 +2386,8 @@ class SingleBMP(CIP):
             # if all <= 1:
                 # raise Exception("You must have more than one point to run this tool!")
             
-            log("Looping through input BMPs...")    
+            log("Looping through input BMPs...")  
+            SetPIDs(BMPpts)            
             BMProws = arcpy.SearchCursor(BMPpts)
             counter = 0
             count = 1
