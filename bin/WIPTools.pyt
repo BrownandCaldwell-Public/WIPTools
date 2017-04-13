@@ -2030,7 +2030,7 @@ class CIP(tool):
         parameters += [arcpy.Parameter(
         displayName="Output Yield",
         name="yield",
-        datatype="GPFeatureLayer",
+        datatype="DERasterDataset",
         parameterType="Required",
         direction="Output")]
         
