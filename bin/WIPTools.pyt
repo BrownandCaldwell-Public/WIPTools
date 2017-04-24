@@ -1312,6 +1312,7 @@ class ProdTrans(tool):
         datatype="DERasterDataset",
         parameterType="Required",
         direction="Output")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"pProd")
         
         parameters += [arcpy.Parameter(
         displayName="Combined production",
@@ -1319,6 +1320,7 @@ class ProdTrans(tool):
         datatype="DERasterDataset",
         parameterType="Required",
         direction="Output")]
+        parameters[-1].value = os.path.join(arcpy.env.workspace,"qProd")
         
         parameters += [
         arcpy.Parameter(
@@ -1360,6 +1362,10 @@ class ProdTrans(tool):
             fields = arcpy.ListFields(parameters[14].value)
             l = [f.name for f in fields]
             parameters[15].filter.list = l
+        
+        if parameters[11].value:
+            parameters[30].value = os.path.join(arcpy.env.workspace,"p"+ GetAlias(parameters[11].valueAsText))
+            parameters[31].value = os.path.join(arcpy.env.workspace,"q"+ GetAlias(parameters[11].valueAsText))
             
         return
 
