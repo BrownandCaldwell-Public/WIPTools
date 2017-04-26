@@ -1363,9 +1363,9 @@ class ProdTrans(tool):
             l = [f.name for f in fields]
             parameters[15].filter.list = l
         
-        if parameters[11].value:
-            parameters[30].value = os.path.join(arcpy.env.workspace,"p"+ GetAlias(parameters[11].valueAsText))
-            parameters[31].value = os.path.join(arcpy.env.workspace,"q"+ GetAlias(parameters[11].valueAsText))
+        if parameters[12].value:
+            parameters[30].value = os.path.join(arcpy.env.workspace,"p"+ GetAlias(parameters[12].valueAsText))
+            parameters[31].value = os.path.join(arcpy.env.workspace,"q"+ GetAlias(parameters[12].valueAsText))
             
         return
 
