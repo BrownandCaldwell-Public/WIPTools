@@ -116,7 +116,7 @@ def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
     
     return newRaster
 
-def AttExtract(streamInvPts, flowdir, streams, outputname=None, cellsize=None):
+def AttExtract(streamInvPts, flowdir, streams, outputname=None):
     import AttributeExtract
     log("\tRunning AttExtract...")
     
@@ -124,7 +124,7 @@ def AttExtract(streamInvPts, flowdir, streams, outputname=None, cellsize=None):
     cellSize = flowdir.meanCellWidth
 
     start = time.time()
-    nStreamInv = arcpy.RasterToNumPyArray(streamInvPts, nodata_to_value=-1).astype(numpy.double)
+    nStreamInv = arcpy.RasterToNumPyArray(streamInvPts, nodata_to_value=0).astype(numpy.double)
     nflowdir = arcpy.RasterToNumPyArray(flowdir, nodata_to_value=0).astype(numpy.int)
     nStream  = arcpy.RasterToNumPyArray(streams, nodata_to_value=0).astype(numpy.int)
     if not cellsize: cellsize = 0
@@ -1549,7 +1549,7 @@ class ProdTrans(tool):
             arcpy.CopyRaster_management(production, pPath)
 
             log("Determine stream roughness")
-            n_channele1 = Raster(os.path.join(arcpy.env.scratchFolder, n_channel+ "e.tif") )
+            n_channele1 = Raster(os.path.join(arcpy.env.scratchFolder, n_channel+ "e") )
             n_channele = RemoveNulls(n_channele1)
             n_channele.save(os.path.join(arcpy.env.scratchFolder, "n_channele"))
             
@@ -1730,7 +1730,7 @@ class Baseline(tool):
         direction="Input")]
         
         parameters += [arcpy.Parameter(
-        displayName="Input K Die-off",
+        displayName="K raster from Production",
         name="K",
         datatype="DERasterDataset",
         parameterType="Required",
