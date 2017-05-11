@@ -1486,7 +1486,7 @@ class ProdTrans(tool):
                 
                 if field == RB_Len or field == LB_Len:
                     log("\tExtract %s attribute with cellsize %s..." % (field, Units))
-                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e"), Units)
+                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e"))
                 
                     log("\t\tReclassify Bank length attribute...")
                     #~ rrange = RemapRange([[-10000000000,0,0], [0.00001,1000000000000,1]]) # this does not work 
@@ -1496,7 +1496,7 @@ class ProdTrans(tool):
                 
                 else: 
                     log("\tExtract %s attribute..." % field)
-                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e"), None)
+                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e"))
             
             
             log("Calculate Right bank stream production...")
@@ -2209,7 +2209,7 @@ class CIP(tool):
                 len = arcpy.FeatureToRaster_conversion(strBMPs2, StreamLength_fld, os.path.join(arcpy.env.scratchFolder, "len.tif"), flowdir)
                 BMPlengths = Float(len)
                  
-                lengths = AttExtract(BMPlengths, flowdir, Stream_Raster, pn+'len.tif', Units)
+                lengths = AttExtract(BMPlengths, flowdir, Stream_Raster, pn+'len.tif')
                 
                 log("Remove background values...")
                 lengthsmask = Reclassify(lengths, "VALUE", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
@@ -2502,7 +2502,7 @@ class SingleBMP(CIP):
                     arcpy.FeatureToRaster_conversion(os.path.join(arcpy.env.scratchFolder, "SinBMPpts.shp"), StreamLength_fld, "len", flowdir)
                     slengths = Float(Raster("len"))
                     
-                    thisstream = AttExtract(slengths, flowdir, Stream_Raster, "thisstream", Units)
+                    thisstream = AttExtract(slengths, flowdir, Stream_Raster, "thisstream")
                     
                     log("Make mask...")
                     ThisBMPmask = Reclassify(thisstream, "Value", ".00001 100000 1;-100000 0 0; NoData 0", "DATA")
