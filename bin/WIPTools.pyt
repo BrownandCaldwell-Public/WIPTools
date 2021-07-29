@@ -71,7 +71,7 @@ def GetBasin():
         Basin = bf.readline().strip()
         bf.close()
         return Basin
-    except Exception, e:
+    except Exception as e:
         raise e
 
 def EH(i, j, k):
@@ -393,17 +393,14 @@ class Toolbox(object):
         self.alias = "WIP Tools"
         # self.tools = [Baseline, CIP]
         self.tools = [TopoHydro, ImpCov, Runoff, ProdTrans, Baseline, CIP, SingleBMP]
-        if arcpy.env.scratchWorkspace == "" or arcpy.env.scratchWorkspace.endswith('Default.gdb'):
-            arcpy.env.scratchWorkspace = os.path.split(arcpy.env.workspace)[0]
+        # if arcpy.env.scratchWorkspace == None or arcpy.env.scratchWorkspace == "" or arcpy.env.scratchWorkspace.endswith('Default.gdb'):
+            # arcpy.env.scratchWorkspace = os.path.split(arcpy.env.workspace)[0]
 
 class TopoHydro(tool):
     def __init__(self):
         self.label = "TopoHydro"
         self.description = "Topopgraphy and Hydrology Setup"
         
-    def __del__(self):
-        super(tool, self).__del__()
-    
     def getParameterInfo(self):
         parameters = []
         
@@ -551,10 +548,6 @@ class ImpCov(tool):
     def __init__(self):
         self.label = "ImpCov"
         self.description = "Impervious Cover"
-        tool.__init__(self)
-        
-    def __del__(self):
-        tool.__del__(self)
         
     def getParameterInfo(self):
         parameters = []
@@ -687,10 +680,10 @@ class ImpCov(tool):
             # Data Validation
             count = int(arcpy.GetCount_management(Impervious_Polygons_Vector).getOutput(0))
             if count < 1:
-                raise Exception, "No impervious areas in the study area"
+                raise Exception("No impervious areas in the study area")
             count = int(arcpy.GetCount_management(Lakes_Polygon_Vector).getOutput(0))
             if count < 1:
-                raise Exception, "No lakes in the study area"
+                raise Exception("No lakes in the study area")
             
             log("Converting impervious polygons to raster...")
             impid = 'NewId'
@@ -968,11 +961,11 @@ class Runoff(tool):
                         
                         log("Add Curve Number to union...")
                         LUcodes = GetDataTable(lutFile)
-                        print LUcodes
+                        print(LUcodes)
                         
                         arcpy.AddField_management(os.path.join(arcpy.env.scratchFolder,"union.shp"), "CN", "LONG", "", "", "", "", "NON_NULLABLE", "NON_REQUIRED", "")
                         rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"union.shp"))
-                        row = rows.next()
+                        row = next(rows)
                         while row:
                             CN = 1
                             
@@ -992,7 +985,7 @@ class Runoff(tool):
                                     
                             row.setValue("CN", CN)
                             rows.updateRow(row)
-                            row = rows.next()
+                            row = next(rows)
                         del row, rows
                         
                         log("Convert union to raster...")
@@ -1436,7 +1429,7 @@ class ProdTrans(tool):
             arcpy.Clip_analysis(StrInvPts_preclip, vecmask, StrInvPts)
             count = int(arcpy.GetCount_management(StrInvPts).getOutput(0))
             if count < 1:
-                raise Exception, "No stream inventory points in the study area"
+                raise Exception("No stream inventory points in the study area")
             
             log("Reclassify flowdirection to find straight paths...")
             Flowdirs = Reclassify(flowdir, "VALUE", "1 1;2 0;4 1;8 0;16 1;32 0;64 1;128 0", "DATA")
@@ -2154,7 +2147,7 @@ class CIP(tool):
             CIPBMPpts = os.path.join(arcpy.env.scratchFolder, "CIPpts.shp")
             CIP_found = GetSubset(BMPpts, CIPBMPpts, " \"%s\" = 'TRUE' " % bmp_CIPproj)
             if not CIP_found:
-                raise Exception, "Did not find any CIP Projects in the study area, stopping"
+                raise Exception("Did not find any CIP Projects in the study area, stopping")
                 
             log("Finding Channel Protection projects...")  # From CIP points only
             ChanBMPpts = os.path.join(arcpy.env.scratchFolder, "ChanBMPpts.shp")

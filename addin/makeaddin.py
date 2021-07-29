@@ -23,7 +23,7 @@ with zipfile.ZipFile(out_zip_name, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             found_file = False
             for file in (f for f in files if not looks_like_a_backup(f)):
                 archive_file = os.path.join(archive_path, file)
-                print archive_file
+                print(archive_file)
                 zip_file.write(os.path.join(path, file), archive_file)
                 found_file = True
             if not found_file:
