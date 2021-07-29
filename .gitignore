@@ -5,6 +5,7 @@ __pycache__/
 
 # ArcGIS crap
 *.pyt.xml
+*.bak
 
 # C extensions
 *.so
@@ -47,6 +48,7 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+tests/
 
 # Translations
 *.mo
@@ -90,3 +92,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+/.vs/slnx.sqlite
+
+# VisualStudio
+.vs/
