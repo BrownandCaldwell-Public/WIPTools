@@ -62,7 +62,7 @@ def log(message, err=False):
     if arcpy: 
         if err: arcpy.AddError(message)
         else: arcpy.AddMessage(message)
-    with file(logfname, 'a') as logfile:
+    with open(logfname, 'a') as logfile:
         logfile.write(message+"\n")
     
 def GetBasin():
@@ -89,7 +89,7 @@ def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
     cellSize = flowdir.meanCellWidth
 
     start = time.time()
-    nflowdir = arcpy.RasterToNumPyArray(flowdir, nodata_to_value=0).astype(numpy.int)
+    nflowdir = arcpy.RasterToNumPyArray(flowdir, nodata_to_value=0).astype(numpy.int64)
     
     if type(weightsInput) == arcpy.Raster:
         nweight = arcpy.RasterToNumPyArray(weightsInput, nodata_to_value=0).astype(numpy.double)
@@ -122,15 +122,26 @@ def AttExtract(streamInvPts, flowdir, streams, outputname=None):
     
     lowerLeft = arcpy.Point(flowdir.extent.XMin,flowdir.extent.YMin)
     cellSize = flowdir.meanCellWidth
+    
 
     start = time.time()
-    nStreamInv = arcpy.RasterToNumPyArray(streamInvPts, nodata_to_value=0).astype(numpy.double)
-    nflowdir = arcpy.RasterToNumPyArray(flowdir, nodata_to_value=0).astype(numpy.int)
-    nStream  = arcpy.RasterToNumPyArray(streams, nodata_to_value=0).astype(numpy.int)
-    if not cellsize: cellsize = 0
+    nflowdir = arcpy.RasterToNumPyArray(flowdir, nodata_to_value=0).astype(numpy.int64)
+    
+    if type(streamInvPts) == arcpy.Raster:
+        nStreamInv = arcpy.RasterToNumPyArray(streamInvPts, nodata_to_value=0).astype(numpy.double)
+        if nStreamInv.size != nflowdir.size:
+            raise Exception("Input StreamInvPoint raster (%s) is not the same size (%s) as flow direction raster size (%s)" % (streamInvPts.catalogPath, nStreamInv.size, nflowdir.size))
+    else: raise Exception("Input StreamInvPoint (%s) is not a raster" % (streamInvPts.catalogPath))
+    if type(streams) == arcpy.Raster:
+        nStream = arcpy.RasterToNumPyArray(streams, nodata_to_value=0).astype(numpy.int64)
+        if nStream.size != nflowdir.size:
+            raise Exception("Input Stream raster (%s) is not the same size (%s) as flow direction raster size (%s)" % (streams.catalogPath, nStream.size, nflowdir.size))
+
+    nStream  = arcpy.RasterToNumPyArray(streams, nodata_to_value=0).astype(numpy.int64)
+    # if not cellSize: cellSize = 0
     
     
-    arr = AttributeExtract.extractAlongStream(nStreamInv, nflowdir, nStream, cellsize)
+    arr = AttributeExtract.extractAlongStream(nStreamInv, nflowdir, nStream, cellSize)
 
     newRaster = arcpy.NumPyArrayToRaster(arr, lowerLeft, cellSize, value_to_nodata=0)
     if outputname != None:
@@ -179,7 +190,7 @@ def GetDataTable(table):
     if not table.endswith(".csv"): log( "Warning, your data table does not appear to be comma-seprated" )
         
     table = os.path.join(os.path.join(arcpy.env.workspace, r"..\Tooldata"), table)
-    f = file(table)
+    f = open(table)
     dic = {}
     header = f.readline().strip().split(',')
     
@@ -366,8 +377,7 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
 class tool(object):
     def execute(self):
         self.checkEnvVars()
-        mxd = arcpy.mapping.MapDocument("CURRENT")
-        log("\n%s run started at %s from %s using workspace %s and possibly mxd %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace, mxd.filePath))
+        log("\n%s run started at %s from %s using workspace %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace))
         
     def __del__(self):
         pass
@@ -383,6 +393,8 @@ class tool(object):
             raise Exception("Workspace is not a fileGDB. Fix and rerun")
         if not arcpy.env.mask:
             raise Exception("Mask is not set in geoprocessing env settrings. Fix and rerun")
+        arcpy.env.snapRaster = arcpy.env.mask
+        arcpy.env.extent = arcpy.env.mask
     
     def close(self):
         log("\n%s done at %s" % (self.__class__.__name__, time.ctime()))
@@ -400,6 +412,7 @@ class TopoHydro(tool):
     def __init__(self):
         self.label = "TopoHydro"
         self.description = "Topopgraphy and Hydrology Setup"
+        log("\n%s run started at %s from %s using workspace %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace))
         
     def getParameterInfo(self):
         parameters = []
@@ -475,43 +488,39 @@ class TopoHydro(tool):
 
     def execute(self, parameters, messages):
         try:
-            tool.execute(self)
+            if not arcpy.env.workspace:
+                raise Exception("Workspace is not set in geoprocessing env settrings. Fix and rerun")
+            if not 'gdb' in arcpy.env.workspace:
+                raise Exception("Workspace is not a fileGDB. Fix and rerun")
+
+            # user inputs
             tempdem = parameters[0].valueAsText
-            ThisMask = parameters[1].valueAsText
+            userMask = parameters[1].valueAsText
             Threshold_for_stream_formation__acres_ = parameters[2].valueAsText
             manualStreams = parameters[3].valueAsText
+            # derived inputs
             flowdirPath = parameters[4].valueAsText
             flowaccPath = parameters[5].valueAsText
             cumdaPath = parameters[6].valueAsText
             streamsPath = parameters[7].valueAsText
             
-            if ThisMask:
-                log("A Mask has been specified")
-                maskDesc = arcpy.Describe(ThisMask)
-                if not maskDesc.DatasetType == 'RasterDataset':
-                    log("  Mask is not raster, converting to raster first")
-                    arcpy.PolygonToRaster_conversion(ThisMask, maskDesc.OIDFieldName, os.path.join(arcpy.env.scratchFolder, "TempMask"),"MAXIMUM_AREA", "None", tempdem)
-                    TempMask = Raster(os.path.join(arcpy.env.scratchFolder, "TempMask"))
-                     
-                else:
-                    TempMask = ThisMask
-                   
-                Mask = Reclassify(TempMask, "VALUE", "0 1000000000000 1", "DATA")
-                Input_DEM = Con(Mask, tempdem)
-                
+            maskDesc = arcpy.Describe(userMask)
+            if not maskDesc.DatasetType == 'RasterDataset':
+                log("  Mask is not raster, converting to raster first")
+                arcpy.FeatureToRaster_conversion(userMask, maskDesc.OIDFieldName, os.path.join(arcpy.env.scratchFolder, "TempMask"), tempdem)
+                TempMask = Raster(os.path.join(arcpy.env.scratchFolder, "TempMask"))
             else:
-                Input_DEM = tempdem
-          
-            # Input_DEM now represents the area of interest, or mask. 
-            arcpy.env.extent = ThisMask
-            arcpy.env.snapRaster = tempdem
+                TempMask = userMask
+               
+            Mask = Reclassify(TempMask, "VALUE", "0 1000000000000 1", "DATA")
+            Mask.save("Mask")
+            arcpy.env.snapRaster = Mask
+            arcpy.env.mask = Mask
+            arcpy.env.extent = Mask
+            
+            Input_DEM = Con(Mask, tempdem)
             dsc = arcpy.Describe(Input_DEM)
             cellSize = dsc.MeanCellHeight
-            # log( "Input DEM data type = %s, %s, %s" % (dsc.DatasetType, dsc.DataType, dsc.IsInteger) )
-            mainMask = Reclassify(Input_DEM, "VALUE", "0 1000000000000 1; 0 NoData", "DATA")
-            mainMask.save("Mask")
-            arcpy.env.snapRaster = mainMask
-            arcpy.env.mask = mainMask
             
             log("Fill DEM...")
             Filled_DEM = arcpy.sa.Fill(Input_DEM)
@@ -519,7 +528,7 @@ class TopoHydro(tool):
             flowdir = FlowDirection(Filled_DEM, "NORMAL") * arcpy.env.mask # NORMAL should be FORCE?
             flowdir.save(flowdirPath)
             log("Accumulate Flow")
-            Flow_Acc = BMP2DA(flowdir, "CumDa.tif")
+            Flow_Acc = BMP2DA(flowdir, "CumDa")
             Flow_Acc.save(flowaccPath)
             
             log("Drainage Area Calculation...")
@@ -666,6 +675,7 @@ class ImpCov(tool):
             
             # cellSize = hp.units['cellsqft']**0.5
             arcpy.env.cellSize = "MINOF"
+            arcpy.env.extent = arcpy.env.mask
             cellSize = arcpy.Describe(Cum_da).MeanCellHeight
             
             log(" Clipping input vectors to work area (or mask)")
@@ -706,7 +716,6 @@ class ImpCov(tool):
             Imp_Cover_pc = Aggregate(BlockSt_Recl1,10, "MEAN", "EXPAND", "DATA")
             Imp_Cover = ExtractByMask(Imp_Cover_pc, arcpy.env.mask)
             
-        ##    Imp_Cover_pc = arcpy.env.mask * Imp_Cover  ## DOES NOT WORK
             Imp_Cover.save(impcovPath)
             
             Flow_Accumulation_weighted = BMP2DA(Flow_Direction_Raster,"flow_accw.tif", Imp_Cover)
@@ -736,7 +745,7 @@ class ImpCov(tool):
             Impervious_Cover_Lakes = (Imp_Cover*(BooleanNot(Lakes))+(Lakes*100))
             
             log("Flow Accum with Lakes...")
-            Flow_Accumulation_lakes=BMP2DA(Flow_Direction_Raster, "LFlowacc.tif", Impervious_Cover_Lakes)
+            Flow_Accumulation_lakes=BMP2DA(Flow_Direction_Raster, os.path.join(arcpy.env.scratchFolder, "LFlowacc"), Impervious_Cover_Lakes)
             
             log("Divide...")
             cumimpcovlake = RemoveNulls(Flow_Accumulation_lakes)/Flow_Accumulation
@@ -753,8 +762,8 @@ class Runoff(tool):
         self.label = "Runoff"
         self.description = "Runoff"
         
-    def __del__(self):
-        super(tool, self).__del__()
+    # def __del__(self):
+        # super(tool, self).__del__()
         
     def getParameterInfo(self):
         parameters = []
@@ -961,7 +970,7 @@ class Runoff(tool):
                         
                         log("Add Curve Number to union...")
                         LUcodes = GetDataTable(lutFile)
-                        print(LUcodes)
+                        # print(LUcodes)
                         
                         arcpy.AddField_management(os.path.join(arcpy.env.scratchFolder,"union.shp"), "CN", "LONG", "", "", "", "", "NON_NULLABLE", "NON_REQUIRED", "")
                         rows = arcpy.UpdateCursor(os.path.join(arcpy.env.scratchFolder,"union.shp"))
@@ -1015,7 +1024,7 @@ class Runoff(tool):
                         _V25U = Power((float(pdepth) - 0.2 * (( 1000.00 / CurveN ) - 10)) , 2) / (float(pdepth) + (0.8 * (( 1000.00 / CurveN ) - 10)))
 
                         log("%s Conv..." % pname)
-                        V25_U_ft= _V25U * Units * Units / 12 #* arcpy.env.mask
+                        V25_U_ft= (_V25U * Units * Units / 12 ) * arcpy.env.mask
                         
                         log("%s Urban Flow Accum..." % pname)
                         V25U = BMP2DA(flowdir, "V25U", V25_U_ft)
@@ -1024,7 +1033,7 @@ class Runoff(tool):
                         _V25R = Power((float(pdepth) - 0.2 * (( 1000.00 / float(baseCN)) - 10)), 2) / (float(pdepth) + (0.8 * (( 1000.00 / float(baseCN)) - 10)))
 
                         log("%s Rural Vol Conv..." % pname)
-                        V25_R_ft = _V25R * Units * Units / 12 #* arcpy.env.mask
+                        V25_R_ft = (_V25R * Units * Units / 12 ) * arcpy.env.mask
                         
                         log("%s Rural Flow Accum..." % pname)
                         V25R = BMP2DA(flowdir, "V25R", V25_R_ft)
@@ -1055,10 +1064,7 @@ class ProdTrans(tool):
     def __init__(self):
         self.label = "ProdTrans"
         self.description = "Production and Transport Setup"
-        
-    def __del__(self):
-        super(tool, self).__del__()
-        
+               
     def getParameterInfo(self):
         parameters = []
         
@@ -1677,9 +1683,6 @@ class Baseline(tool):
         self.label = "Baseline"
         self.description = "Baseline"
         
-    def __del__(self):
-        super(tool, self).__del__()
-        
     def getParameterInfo(self):
     
         parameters = []
@@ -1822,7 +1825,7 @@ class Baseline(tool):
                 raise Exception("No BMP points in project area")
 
             log("Convert BMPs to Raster...")
-            BMPs = arcpy.FeatureToRaster_conversion(ExBMPpts, bmp_eff, os.path.join(arcpy.env.scratchFolder,"ExBMPpts"), flowdir)
+            BMPs = arcpy.FeatureToRaster_conversion(ExBMPpts, bmp_eff, os.path.join(arcpy.env.scratchFolder,"ExBMPpts.shp"), flowdir)
             
             log("Combine decay function with BMP reduction")
             bmptemp = RemoveNulls(BMPs)
@@ -2226,7 +2229,7 @@ class CIP(tool):
                 if streamLinearRed:
                     
                     log("Convert Stream Projects to Raster...")
-                    #~ print bmp_peff
+                    #~ print(bmp_peff
                     slpf = arcpy.FeatureToRaster_conversion(strBMPs2, streamLinearRed, os.path.join(arcpy.env.scratchFolder, "slpf.tif"), flowdir)
                     strBMPs3 = Float(slpf)
                     
