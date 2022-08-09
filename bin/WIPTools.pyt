@@ -55,7 +55,7 @@ def CalcErosivity(DefEro, TSSprod, pointSrcRaster, URratio, Streams_rc):
     return cleanoutput 
     
 def log(message, err=False):
-    ''' Logging function that write to the log file, and ArcGIS geoprocessor messages'''
+    ''' Logging function that writes to a log file, and ArcGIS geoprocessor messages'''
     # if not message.startswith("  "):
         # message = " Step %s: %s" % (Step(), message)
     message = str(message)
@@ -116,7 +116,7 @@ def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
     
     return newRaster
 
-def AttExtract(streamInvPts, flowdir, streams, outputname=None):
+def AttExtract(streamInvPts, flowdir, streams, outputname=None, decrease=False):
     import AttributeExtract
     log("\tRunning AttExtract...")
     
@@ -141,7 +141,7 @@ def AttExtract(streamInvPts, flowdir, streams, outputname=None):
     # if not cellSize: cellSize = 0
     
     
-    arr = AttributeExtract.extractAlongStream(nStreamInv, nflowdir, nStream, cellSize)
+    arr, iterations = AttributeExtract.extractAlongStream(nStreamInv, nflowdir, nStream, cellSize, decrease)
 
     newRaster = arcpy.NumPyArrayToRaster(arr, lowerLeft, cellSize, value_to_nodata=0)
     if outputname != None:
@@ -149,7 +149,7 @@ def AttExtract(streamInvPts, flowdir, streams, outputname=None):
         # log("\tOutput: " + os.path.join(arcpy.env.scratchFolder, outputname))
         # stats = arr.flatten()
         # log("\t\tMax: %s Min: %s Avg: %s Med: %s Std: %s Var: %s" % (numpy.amax(stats), numpy.amin(stats), numpy.average(stats), numpy.median(stats), numpy.std(stats), numpy.var(stats)))
-    log( "\tAttExtract took %6.2f seconds" % (time.time()-start) )
+    log( "\tAttExtract took %6.2f seconds for %i iterations" % (time.time()-start, iterations))
     
     return newRaster
 
@@ -377,11 +377,11 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
 class tool(object):
     def execute(self):
         self.checkEnvVars()
-        log("\n%s run started at %s from %s using workspace %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace))
+        aprx = arcpy.mp.ArcGISProject('CURRENT')
+        log("\n%s run started at %s from %s using workspace %s and map %s by %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace, aprx.filePath, os.getlogin()))
         
-    def __del__(self):
-        pass
-        # log("Done at " + time.asctime() +"\n\n")
+    # def __del__(self):
+    #     log("Done at " + time.asctime() +"\n\n")
         
     def checkEnvVars(self):
         # for i in arcpy.ListEnvironments():
@@ -401,7 +401,7 @@ class tool(object):
     
 class Toolbox(object):
     def __init__(self):
-        self.label = "WIP Tools"
+        self.label = "WIPTools"
         self.alias = "WIP Tools"
         # self.tools = [Baseline, CIP]
         self.tools = [TopoHydro, ImpCov, Runoff, ProdTrans, Baseline, CIP, SingleBMP]
@@ -412,7 +412,6 @@ class TopoHydro(tool):
     def __init__(self):
         self.label = "TopoHydro"
         self.description = "Topopgraphy and Hydrology Setup"
-        log("\n%s run started at %s from %s using workspace %s" % (self.__class__.__name__, time.ctime(), __file__, arcpy.env.workspace))
         
     def getParameterInfo(self):
         parameters = []
@@ -487,6 +486,7 @@ class TopoHydro(tool):
         return
 
     def execute(self, parameters, messages):
+        
         try:
             if not arcpy.env.workspace:
                 raise Exception("Workspace is not set in geoprocessing env settrings. Fix and rerun")
@@ -1033,16 +1033,16 @@ class Runoff(tool):
                         _V25R = Power((float(pdepth) - 0.2 * (( 1000.00 / float(baseCN)) - 10)), 2) / (float(pdepth) + (0.8 * (( 1000.00 / float(baseCN)) - 10)))
 
                         log("%s Rural Vol Conv..." % pname)
-                        V25_R_ft = (_V25R * Units * Units / 12 ) * arcpy.env.mask
+                        a = (_V25R * Units * Units / 12 )
+                        V25_R_ft = (_V25R * Units * Units / 12 ) * Raster(arcpy.env.mask)
                         
                         log("%s Rural Flow Accum..." % pname)
                         V25R = BMP2DA(flowdir, "V25R", V25_R_ft)
                         
                         log("%s Flood storage..." % pname)
-                        V25Flood = arcpy.env.mask * (V25U - V25R)
+                        V25Flood = (V25U - V25R) * Raster(arcpy.env.mask )
                         V25Flood.save("V%sFlood" % pname)
                 
-            ## These should be simple raster calculator statements in model builder, no?
             
             log("Calculating Undeveloped Discharge...")            
             UndevQ = regression.ruralQcp(Basin, cum_da)
@@ -1370,6 +1370,9 @@ class ProdTrans(tool):
 
     def execute(self, parameters, messages):
         try:
+            # log(sys.path)
+            import AttributeExtract
+
             tool.execute(self)
             # for i, p in enumerate(parameters):
                 # log("%s: %s" % (i, p.valueAsText))
@@ -1479,13 +1482,13 @@ class ProdTrans(tool):
                 ras = Raster(f)
                 AttributeRaster = Float(ras) * arcpy.env.mask
                 
-                # AttributeRaster.save(os.path.join(arcpy.env.scratchFolder, "f" + field +""))
-                # flowdir.save(os.path.join(arcpy.env.scratchFolder, "flowdir"))
-                # streams.save(os.path.join(arcpy.env.scratchFolder, "streams"))
+                AttributeRaster.save(os.path.join(arcpy.env.scratchFolder, "f" + field +".tif"))
+                # flowdir.save(os.path.join(arcpy.env.scratchFolder, "flowdir.tif"))
+                # streams.save(os.path.join(arcpy.env.scratchFolder, "streams.tif"))
                 
                 if field == RB_Len or field == LB_Len:
-                    log("\tExtract %s attribute with cellsize %s..." % (field, Units))
-                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e"))
+                    log("\tExtract %s attribute with cellsize %s to %s..." % (field, Units, os.path.join(arcpy.env.scratchFolder, field+"e")))
+                    extract = AttExtract(AttributeRaster, flowdir, streams, os.path.join(arcpy.env.scratchFolder, field+"e"), True)
                 
                     log("\t\tReclassify Bank length attribute...")
                     #~ rrange = RemapRange([[-10000000000,0,0], [0.00001,1000000000000,1]]) # this does not work 
@@ -1726,7 +1729,7 @@ class Baseline(tool):
         direction="Input")]
         
         parameters += [arcpy.Parameter(
-        displayName="K raster from Production",
+        displayName="Decay (K raster output from Production)",
         name="K",
         datatype="DERasterDataset",
         parameterType="Required",
@@ -1810,7 +1813,7 @@ class Baseline(tool):
             
             streams = RemoveNulls(Streams_nd)
             Units = flowdir.meanCellWidth
-            
+
             log("Clipping BMP points to work area (or mask)...")
             vecmask = os.path.join(arcpy.env.scratchFolder, "vectmask.shp")
             BMPpts = os.path.join(arcpy.env.scratchFolder, "BMPpts.shp")
@@ -1818,17 +1821,19 @@ class Baseline(tool):
             arcpy.Clip_analysis(bmp_noclip, vecmask, BMPpts)
             
             log("Finding BMP projects...")
-            ExBMPpts = os.path.join(arcpy.env.scratchFolder, "ExBMPpts.shp")
+            ExBMPpts = 'ExBMPpts' #os.path.join(arcpy.env.scratchFolder, "ExBMPpts.shp")
+            ExBMPras = 'ExBMPptRas' #os.path.join(arcpy.env.scratchFolder, "ExBMPpts.tif")
             count = GetSubset(BMPpts, ExBMPpts, " \"%s\" = 'BMP' " % bmp_type)
             
             if count < 1:
                 raise Exception("No BMP points in project area")
 
             log("Convert BMPs to Raster...")
-            BMPs = arcpy.FeatureToRaster_conversion(ExBMPpts, bmp_eff, os.path.join(arcpy.env.scratchFolder,"ExBMPpts.shp"), flowdir)
-            
+            arcpy.conversion.FeatureToRaster(ExBMPpts, bmp_eff, ExBMPras, flowdir)
+            #log("arcpy.conversion.FeatureToRaster(r'{}','{}',r'{}',r'{}')".format(ExBMPpts, bmp_eff, ExBMPras, flowdir))
+
             log("Combine decay function with BMP reduction")
-            bmptemp = RemoveNulls(BMPs)
+            bmptemp = RemoveNulls(ExBMPras)
             weightred = 1 - ( K * ( 1 - (bmptemp / 100.0 ) ) ) * arcpy.env.mask
             weightred.save(os.path.join(arcpy.env.scratchFolder,"weightred"))
             
@@ -1923,10 +1928,10 @@ class CIP(tool):
         
         parameters += [
         arcpy.Parameter(
-        displayName="Stream Project Length field",
+        displayName="Stream Reduction per Linear ft field",
         name="strleng",
         datatype="GPString",
-        parameterType="Required",
+        parameterType="Optional",
         direction="Input")]
         parameters[-1].filter.type = "ValueList"
         
@@ -1950,7 +1955,7 @@ class CIP(tool):
         
         parameters += [
         arcpy.Parameter(
-        displayName="Stream length field",
+        displayName="Stream Project length field",
         name="strlen",
         datatype="GPString",
         parameterType="Optional",
@@ -1994,16 +1999,17 @@ class CIP(tool):
         direction="Input")]
         parameters[-1].filter.list = ["Point"]
         
+        
         parameters += [arcpy.Parameter(
-        displayName="Input Stream Production",
-        name="q",
+        displayName="Upland Production",
+        name="p",
         datatype="DERasterDataset",
         parameterType="Required",
         direction="Input")]
         
         parameters += [arcpy.Parameter(
-        displayName="Input Combined Production",
-        name="p",
+        displayName="Combined Production",
+        name="q",
         datatype="DERasterDataset",
         parameterType="Required",
         direction="Input")]
@@ -2110,9 +2116,9 @@ class CIP(tool):
             Basin = parameters[10].valueAsText
             summary_pt_input = parameters[11].valueAsText
             
+            TSSP_ero_ext = Raster(parameters[12].valueAsText)
+            TSSprod = Raster(parameters[13].valueAsText)
             
-            TSSprod = Raster(parameters[12].valueAsText)
-            TSSP_ero_ext = Raster(parameters[13].valueAsText)
             K = Raster(parameters[14].valueAsText)
             pointsrc = parameters[15].valueAsText
             if pointsrc:

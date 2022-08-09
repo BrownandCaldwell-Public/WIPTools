@@ -1,4 +1,7 @@
-REM pip install Cython
-REM SET VS90COMNTOOLS=%VS110COMNTOOLS%
-SET VS90COMNTOOLS=%VS140COMNTOOLS%
-C:\python27\ArcGIS10.3\python setup.py build_ext --inplace
+REM To build the compile environment, use anaconda and cython:
+REM C:\ProgramData\Miniconda3\Scripts\activate.bat
+REM conda create --clone %LOCALAPPDATA%\ESRI\conda\envs\arcgispro-py3-clone --name cython
+REM activate cython
+REM conda install cython
+
+python setup.py build_ext --inplace

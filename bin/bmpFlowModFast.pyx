@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import time
 import numpy
 cimport numpy
-ITYPE = numpy.int
-ctypedef numpy.int_t ITYPE_t
+ITYPE = numpy.int64
+ctypedef numpy.int64_t ITYPE_t
 DTYPE = numpy.double
 ctypedef numpy.double_t DTYPE_t
 

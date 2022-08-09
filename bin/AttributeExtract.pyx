@@ -20,15 +20,16 @@ import time
 import numpy
 from cpython cimport bool
 cimport numpy
-ITYPE = numpy.int
-ctypedef numpy.int_t ITYPE_t
+ITYPE = numpy.int64
+ctypedef numpy.int64_t ITYPE_t
 DTYPE = numpy.double
 ctypedef numpy.double_t DTYPE_t
 
 def extractAlongStream(numpy.ndarray[DTYPE_t, ndim=2] strmInvPts  not None, 
                        numpy.ndarray[ITYPE_t, ndim=2] flowdirData not None, 
                        numpy.ndarray[ITYPE_t, ndim=2] streamRas   not None,
-                       double cellsize):
+                       double cellsize,
+                       bool decrease):
     '''process (loop through) datasets'''
     
     #Make output array
@@ -53,13 +54,14 @@ def extractAlongStream(numpy.ndarray[DTYPE_t, ndim=2] strmInvPts  not None,
     cdef bool complete = False
     while not complete:
         complete = True
+        count = count + 1
         
         for r in range(1,height-1):
             for c in range(1,width-1):
             
                 strmInvPt = outputData[r,c]
-                if strmInvPt >= 0:
-                    
+                
+                if strmInvPt > 0:
                     flowdirval = flowdirData[r, c]
                     if flowdirval == 1:
                         C = 1
@@ -97,14 +99,14 @@ def extractAlongStream(numpy.ndarray[DTYPE_t, ndim=2] strmInvPts  not None,
                     
                     DSstrmInvPt = outputData[r+R,c+C]
                     stream = streamRas[r,c]
-                    if stream > 0:
+                    if stream > 0 and decrease:
                         calc = strmInvPt - cellsize * dist
                     else:
                         calc = strmInvPt
-                        
-                    if DSstrmInvPt < 0 and calc >=0:
+                    
+                    if DSstrmInvPt == 0 and calc > 0:
                         outputData[r+R,c+C] = calc
                         complete = False
-                
-    return outputData
+
+    return outputData, count
     

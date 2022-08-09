@@ -74,6 +74,6 @@ if __name__ == '__main__':
     newRaster = arcpy.NumPyArrayToRaster(arr, lowerLeft, cellSize, value_to_nodata=0)
     newRaster.save(os.path.join(os.getcwd(), "flowSlo2.tif"))
     
-    print "Took %6.2f seconds" % (time.time()-start)
+    print ("Took %6.2f seconds" % (time.time()-start))
     raw_input("Press any key to continue . . . ")
     

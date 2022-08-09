@@ -211,7 +211,7 @@ class Helper:
         cellSize = flowdir.meanCellWidth
 
         start = time.time()
-        nflowdir = arcpy.RasterToNumPyArray(flowdir, nodata_to_value=0).astype(numpy.int)
+        nflowdir = arcpy.RasterToNumPyArray(flowdir, nodata_to_value=0).astype(numpy.int64)
         if type(weightsInput) != arcpy.Raster:
             nweight = arcpy.RasterToNumPyArray(weightsInput, nodata_to_value=0).astype(numpy.double)
         else:

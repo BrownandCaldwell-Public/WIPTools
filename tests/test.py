@@ -17,7 +17,7 @@ start = time.time()
 nflowdir = arcpy.RasterToNumPyArray(flowdir, nodata_to_value=0)
 nweight = arcpy.RasterToNumPyArray(weight, nodata_to_value=0)
 nbmps   = arcpy.RasterToNumPyArray(bmppts, nodata_to_value=0)
-arr = flowAccumulate(nflowdir.astype(numpy.int), nweight.astype(numpy.double), nbmps.astype(numpy.double))
+arr = flowAccumulate(nflowdir.astype(numpy.int64), nweight.astype(numpy.double), nbmps.astype(numpy.double))
 
 newRaster = arcpy.NumPyArrayToRaster(arr, lowerLeft, cellSize, value_to_nodata=0)
 newRaster.save(os.path.join(os.getcwd(), "testOutput.tif"))
