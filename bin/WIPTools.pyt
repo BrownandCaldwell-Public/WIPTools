@@ -1452,9 +1452,20 @@ class ProdTrans(tool):
             
             log("Create Export Coefficient (washoff rate) rasters")
             log( '  Parameter: %s from field %s' % (pn, Export_fld))
-            arcpy.PolygonToRaster_conversion(LU_file, Export_fld, os.path.join(arcpy.env.scratchFolder,"LUacres"), "MAXIMUM_AREA", None, Units)
-            LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")) * (Units*Units/43560.00)
+            arcpy.PolygonToRaster_conversion(LU_file, Export_fld, (os.path.join(arcpy.env.scratchFolder,"LUacres")), "MAXIMUM_AREA", None, float(Units)/10)
+            LU2 = Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")) * (Units*Units/43560.00) 
             LU2.save(os.path.join(arcpy.env.scratchFolder, "lu2"))
+            
+            log("Computing block statistics...")
+            BlockSt_LU2 = BlockStatistics(LU2, NbrRectangle(10, 10, "CELL"), "SUM", "DATA") 
+            # BlockSt_LU2.save(os.path.join(arcpy.env.scratchFolder, "BlockSt_LU2"))
+            
+            log("Aggregate...")
+            LU2_agg_pc = Aggregate(BlockSt_LU2, 10, "MEAN", "EXPAND", "DATA")
+            # LU2_agg_pc.save(os.path.join(arcpy.env.scratchFolder, 'LU2_agg_pc'))
+
+            LU2_agg = ExtractByMask(LU2_agg_pc, arcpy.env.mask)
+            # LU2_agg.save(os.path.join(arcpy.env.scratchFolder, 'LU2_agg'))
             
             log("Create roughness grid")  ######
             arcpy.PolygonToRaster_conversion(LU_file, Mannings_fld, os.path.join(arcpy.env.scratchFolder,"MANNINGSN"), "MAXIMUM_AREA", None, Units)
@@ -1539,14 +1550,14 @@ class ProdTrans(tool):
             impcovrc.save("impcovrc")
             
             # LU2 =  Raster(os.path.join(hp.Workspace + "\\WIPoutput.mdb", LU_code + pn))
-            Ptemp = PStream + LU2 * impcovrc * streams
-            LU2.save(os.path.join(arcpy.env.scratchFolder, "lu2"))
+            Ptemp = PStream + LU2_agg * impcovrc * streams
+            LU2_agg.save(os.path.join(arcpy.env.scratchFolder, "lu2"))
             Ptemp.save(os.path.join(arcpy.env.scratchFolder, "ptemp"))
             PStream.save(os.path.join(arcpy.env.scratchFolder, "pstream"))
             streams.save(os.path.join(arcpy.env.scratchFolder, "streams"))
             impcovrc.save(os.path.join(arcpy.env.scratchFolder, "impcovrc"))
             
-            production = Ptemp + LU2 * BooleanNot(streams)
+            production = Ptemp + LU2_agg * BooleanNot(streams)
             # production.save(pPath)
             arcpy.CopyRaster_management(production, pPath)
 
