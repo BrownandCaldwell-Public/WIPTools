@@ -1455,7 +1455,7 @@ class ProdTrans(tool):
             arcpy.PolygonToRaster_conversion(LU_file, Export_fld, (os.path.join(arcpy.env.scratchFolder,"LUacres")), "MAXIMUM_AREA", None, float(Units)/10)
             
             log("Computing block statistics...")
-            BlockSt_LU2 = BlockStatistics(Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")), NbrRectangle(10, 10, "CELL"), "SUM", "DATA") 
+            BlockSt_LU2 = BlockStatistics(Raster(os.path.join(arcpy.env.scratchFolder,"LUacres")), NbrRectangle(10, 10, "CELL"), "SUM", "DATA")/100 
             BlockSt_LU2.save(os.path.join(arcpy.env.scratchFolder, "BlockSt_LU2"))
             
             log("Aggregate...")
