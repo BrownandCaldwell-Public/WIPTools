@@ -29,6 +29,7 @@ import numpy
 sys.path.append(os.path.split(__file__)[0])
 import regression
 from regression import urbanQcp
+import bmpFlowModFast
 
 logfname   = __file__+".log"
 
@@ -82,7 +83,7 @@ def EH(i, j, k):
     raise Exception()
      
 def BMP2DA(flowdir, outputname=None, weightsInput=None, bmpsInput=None):
-    import bmpFlowModFast
+    # import bmpFlowModFast
     log("    Running BMP2DA...")
     
     lowerLeft = arcpy.Point(flowdir.extent.XMin,flowdir.extent.YMin)
@@ -359,10 +360,11 @@ def ChannelProtection( Basin, BMP_pts, fld, flowdir, Cum_da, Cumulative_Impervio
         Mod_da.save(os.path.join(arcpy.env.scratchFolder,"Mod_da_test"))
         # Cumulative_Impervious.save(os.path.join(arcpy.env.scratchFolder,"CumImp_test"))
         # Cum_da.save(os.path.join(arcpy.env.scratchFolder,"Cum_da_test"))
-        acc_red.save(os.path.join(arcpy.env.scratchFolder,"acc_red_cp"))
+        acc_red.save(os.path.join(arcpy.env.scratchFolder,"acc_red_cp.tif"))
         # flowdir.save(os.path.join(arcpy.env.scratchFolder,"flowdir_test"))
         
-        ModCumDa_u = BMP2DA(flowdir, "ModCumDa_asc", Raster(arcpy.env.mask), acc_red)
+        ModCumDa_u = BMP2DA(flowdir, "ModCumDa_asc.tif", Raster(arcpy.env.mask), acc_red)
+        ModCumDa_u.save(os.path.join(arcpy.env.scratchFolder,"ModCumDa_asc.tif"))
 
         log("   Convert units...")
         conv = (cellSize*cellSize) / 43560
@@ -1560,8 +1562,7 @@ class ProdTrans(tool):
             
             production = Ptemp + LU2 * BooleanNot(streams)
             production.save(pPath)
-            arcpy.CopyRaster_management(production, pPath)
-
+            
             log("Determine stream roughness")
             n_channele1 = Raster(os.path.join(arcpy.env.scratchFolder, n_channel+ "e") )
             n_channele = RemoveNulls(n_channele1)
@@ -1886,8 +1887,13 @@ class CIP(tool):
         self.label = "CIP"
         self.description = "CIP"
         
-    def __del__(self):
-        super(tool, self).__del__()
+    # def __del__(self):
+        ## super(tool, self).__del__()
+        # try:
+            # super().__del__(self)
+            # log('CIP Destructor Called')
+        # except:
+            # log('CIP destructor failure')
         
     def getParameterInfo(self):
     
@@ -2147,7 +2153,7 @@ class CIP(tool):
             
             Cumulative_Impervious = Raster(parameters[22].valueAsText)
             Rural_1yrQ = Raster(parameters[23].valueAsText)
-            URratio_vec = os.path.join(arcpy.env.scratchFolder, "URratio_CIP")
+            URratio_vec = os.path.join(arcpy.env.scratchFolder, "URratio_CIP.shp")
             
             log("\nCIP run started at %s" % (time.asctime()))
             
@@ -2166,17 +2172,20 @@ class CIP(tool):
             
             log("Finding CIP projects...")
             CIPBMPpts = os.path.join(arcpy.env.scratchFolder, "CIPpts.shp")
-            CIP_found = GetSubset(BMPpts, CIPBMPpts, " \"%s\" = 'TRUE' " % bmp_CIPproj)
+            try:
+                CIP_found = GetSubset(BMPpts, CIPBMPpts, " \"%s\" = 'TRUE' " % (bmp_CIPproj))
+            except:
+                CIP_found = GetSubset(BMPpts, CIPBMPpts, " \"%s\" = 1 " % (bmp_CIPproj))
             if not CIP_found:
                 raise Exception("Did not find any CIP Projects in the study area, stopping")
                 
             log("Finding Channel Protection projects...")  # From CIP points only
             ChanBMPpts = os.path.join(arcpy.env.scratchFolder, "ChanBMPpts.shp")
-            CP_found = GetSubset(CIPBMPpts, ChanBMPpts , " \"%s\" < \"%s\" " % (bmp_Prop1yr, bmp_Ex1yr))
-            
+            CP_found = GetSubset(CIPBMPpts, ChanBMPpts , " \"%s\" <= \"%s\" " % (bmp_Prop1yr, bmp_Ex1yr))
+        
             log("Finding Stream Restoration projects...")    
             strBMPs2 = os.path.join(arcpy.env.scratchFolder, "strBMPs2.shp")
-            SR_found = GetSubset(CIPBMPpts, strBMPs2 , " \"%s\" = 'Stream Restoration' " % bmp_type)
+            SR_found = GetSubset(CIPBMPpts, strBMPs2 , " %s = 'Stream Restoration' " % bmp_type)
             
             log("Finding Existing BMPs...")
             ExistingBMPs = os.path.join(arcpy.env.scratchFolder, "ExistingBMPs.shp")
@@ -2197,10 +2206,11 @@ class CIP(tool):
                 log("Calculate Urban/Rural ratio...")
                 
                 URratio = uQcp / Rural_1yrQ
+                URratio.save(os.path.join(arcpy.env.scratchFolder, 'URratio'))
                 
                 log("Add erosivity to production...")# % param)
                 TSSP_ero_ext = CalcErosivity(defEro, TSSprod, pointsrc, URratio, Stream_Raster)
-                # TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder, "TSSP_ero_ext"))
+                TSSP_ero_ext.save(os.path.join(arcpy.env.scratchFolder, "TSSP_ero_ext"))
                 log("Clip to streams...")
                 # and round
                 UrbRurratc = Int(RoundUp( RoundDown( Streams_nd * URratio * 20000 ) / 2 ))
@@ -2274,8 +2284,8 @@ class CIP(tool):
             # Get and combine all the efficiencies used
             if existing_found > 0: 
                 log("Convert Existing Efficiency to Raster...")
-                arcpy.FeatureToRaster_conversion(ExistingBMPs, bmp_eeff, os.path.join(arcpy.env.scratchFolder, "ExistingBMPs"), flowdir)
-                ExistingBMPs = Raster(os.path.join(arcpy.env.scratchFolder, "ExistingBMPs"))
+                arcpy.FeatureToRaster_conversion(ExistingBMPs, bmp_eeff, os.path.join(arcpy.env.scratchFolder, "ExistingBMPr"), flowdir)
+                ExistingBMPs = Raster(os.path.join(arcpy.env.scratchFolder, "ExistingBMPr"))
                 ExistingBrc = RemoveNulls(ExistingBMPs)
                 
             if cipbmps_found > 0:
@@ -2339,8 +2349,14 @@ class SingleBMP(CIP):
         self.description = "SingleBMP"
         
     def __del__(self):
-        super(tool, self).__del__()
-        
+        # super(tool, self).__del__()
+        try:
+            super().__del__(self)
+            log('Single BMP Called')
+        except:
+            log('Single BMP destructor failure')
+
+
     def getParameterInfo(self):        
         parameters = super(SingleBMP, self).getParameterInfo()
         return parameters
