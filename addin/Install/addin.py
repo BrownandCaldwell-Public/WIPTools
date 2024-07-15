@@ -29,7 +29,7 @@ class Runoff(object):
         self.enabled = True
         self.checked = False
     def onClick(self):
-                try:
+        try:
             pythonaddins.GPToolDialog("WatershedImprovementPlanningTools.pyt", "Runoff")
         except TypeError:
             pass
